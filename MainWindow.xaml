@@ -1,28 +1,21 @@
-<Window
-    x:Class="Tidy.MainWindow"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Tidy">
+<Window x:Class="Tidy.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tidy" Height="500" Width="800">
 
-    <Grid Padding="20">
-        <StackPanel Spacing="12">
+    <Grid Margin="10">
+        <StackPanel>
 
-            <TextBlock Text="Tidy" FontSize="28" FontWeight="Bold"/>
+            <TextBlock Text="Tidy" FontSize="26" FontWeight="Bold" Margin="0,0,0,10"/>
 
-            <TextBox x:Name="SearchBox" PlaceholderText="Search installed apps..."/>
+            <ListBox x:Name="AppsList" Height="300"/>
 
-            <ListView x:Name="AppsList" Height="400"/>
-
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button Content="Uninstall Selected" Click="Uninstall_Click"/>
-                <Button Content="Refresh" Click="Refresh_Click"/>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button Content="Refresh" Width="100" Margin="0,0,10,0" Click="Refresh_Click"/>
+                <Button Content="Uninstall" Width="100" Click="Uninstall_Click"/>
             </StackPanel>
 
-            <ProgressBar x:Name="Progress" Height="6"/>
-
-            <ScrollViewer Height="120">
-                <TextBlock x:Name="Logs" TextWrapping="Wrap" FontFamily="Consolas"/>
-            </ScrollViewer>
+            <TextBox x:Name="Logs" Height="100" Margin="0,10,0,0" IsReadOnly="True" AcceptsReturn="True"/>
 
         </StackPanel>
     </Grid>
