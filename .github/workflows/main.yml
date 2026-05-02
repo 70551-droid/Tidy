@@ -15,9 +15,7 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - run: dotnet restore
-
-    - run: dotnet publish -c Release
+    - run: dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
 
     - uses: actions/upload-artifact@v4
       with:
