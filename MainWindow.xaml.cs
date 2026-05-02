@@ -1,19 +1,18 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.Win32;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows;
 
 namespace Tidy
 {
-    public sealed partial class MainWindow : Window
+    public partial class MainWindow : Window
     {
         private List<AppInfo> apps = new();
 
         public MainWindow()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             LoadApps();
         }
 
@@ -37,35 +36,28 @@ namespace Tidy
                 }
             }
 
-            AppsList.ItemsSource = apps.Select(a => a.Name).ToList();
+            AppsList.ItemsSource = apps.Select(a => a.Name);
         }
 
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
             LoadApps();
-            Log("Refreshed app list");
+            Log("Refreshed");
         }
 
         private void Uninstall_Click(object sender, RoutedEventArgs e)
         {
             if (AppsList.SelectedItem == null) return;
 
-            var selected = apps.First(a => a.Name == AppsList.SelectedItem.ToString());
+            var app = apps.First(a => a.Name == AppsList.SelectedItem.ToString());
 
-            try
-            {
-                Process.Start("cmd.exe", "/c " + selected.Command);
-                Log("Started uninstall: " + selected.Name);
-            }
-            catch
-            {
-                Log("Failed to uninstall");
-            }
+            Process.Start("cmd.exe", "/c " + app.Command);
+            Log("Uninstall started: " + app.Name);
         }
 
         private void Log(string msg)
         {
-            Logs.Text += msg + "\\n";
+            Logs.AppendText(msg + "\\n");
         }
     }
 
