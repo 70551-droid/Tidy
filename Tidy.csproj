@@ -6,7 +6,6 @@
     <UseWinUI>true</UseWinUI>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Platforms>x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
