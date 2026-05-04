@@ -15,8 +15,8 @@
                 <Button Content="Uninstall" Width="100" Click="Uninstall_Click"/>
             </StackPanel>
 
-            <TextBox x:Name="Logs" Height="100" Margin="0,10,0,0" IsReadOnly="True" AcceptsReturn="True"/>
-
+            <TextBox x:Name="Logs" Height="100" Margin="0,10,0,0"
+                     IsReadOnly="True" AcceptsReturn="True"/>
         </StackPanel>
     </Grid>
 </Window>
