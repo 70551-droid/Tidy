@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace Tidy
 {
@@ -42,16 +43,26 @@ namespace Tidy
                     {
                         using var sk = key.OpenSubKey(sub);
 
-                        string? name = sk?.GetValue("DisplayName") as string;
+                        string? name =
+                            sk?.GetValue("DisplayName") as string;
+
                         string? uninstall =
                             sk?.GetValue("UninstallString") as string;
+
+                        string? publisher =
+                            sk?.GetValue("Publisher") as string;
+
+                        string? installDate =
+                            sk?.GetValue("InstallDate") as string;
 
                         if (!string.IsNullOrWhiteSpace(name))
                         {
                             apps.Add(new AppInfo
                             {
                                 Name = name,
-                                Command = uninstall ?? ""
+                                Command = uninstall ?? "",
+                                Publisher = publisher ?? "Unknown",
+                                InstallDate = installDate ?? "Unknown"
                             });
                         }
                     }
@@ -63,7 +74,7 @@ namespace Tidy
 
             AppsList.ItemsSource = apps
                 .OrderBy(a => a.Name)
-                .Select(a => a.Name);
+                .ToList();
 
             Logs.AppendText($"Loaded {apps.Count} apps\n");
         }
@@ -77,21 +88,27 @@ namespace Tidy
             Logs.AppendText("Refresh complete\n");
         }
 
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string query = SearchBox.Text.ToLower();
+
+            AppsList.ItemsSource = apps
+                .Where(a => a.Name.ToLower().Contains(query))
+                .OrderBy(a => a.Name)
+                .ToList();
+        }
+
         private void Uninstall_Click(object sender, RoutedEventArgs e)
         {
-            if (AppsList.SelectedItem == null)
+            if (AppsList.SelectedItem is not AppInfo app)
             {
                 MessageBox.Show("Select an app first.");
                 return;
             }
 
-            string selectedName = AppsList.SelectedItem.ToString() ?? "";
-
-            var app = apps.FirstOrDefault(a => a.Name == selectedName);
-
-            if (app == null || string.IsNullOrWhiteSpace(app.Command))
+            if (string.IsNullOrWhiteSpace(app.Command))
             {
-                MessageBox.Show("Uninstall command not found.");
+                MessageBox.Show("No uninstall command found.");
                 return;
             }
 
@@ -117,6 +134,8 @@ namespace Tidy
     public class AppInfo
     {
         public string Name { get; set; } = "";
+        public string Publisher { get; set; } = "";
+        public string InstallDate { get; set; } = "";
         public string Command { get; set; } = "";
     }
 }
