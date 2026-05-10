@@ -2,7 +2,9 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -25,7 +27,7 @@ namespace Tidy
 
         private async Task LoadAppsAsync()
         {
-            Logs.AppendText("Loading installed apps...\n");
+            Log("Loading installed applications...");
 
             await Task.Run(() =>
             {
@@ -46,6 +48,9 @@ namespace Tidy
                         string? name =
                             sk?.GetValue("DisplayName") as string;
 
+                        if (string.IsNullOrWhiteSpace(name))
+                            continue;
+
                         string? uninstall =
                             sk?.GetValue("UninstallString") as string;
 
@@ -55,16 +60,26 @@ namespace Tidy
                         string? installDate =
                             sk?.GetValue("InstallDate") as string;
 
-                        if (!string.IsNullOrWhiteSpace(name))
+                        object? sizeObj =
+                            sk?.GetValue("EstimatedSize");
+
+                        string sizeText = "Unknown";
+
+                        if (sizeObj != null &&
+                            int.TryParse(sizeObj.ToString(), out int kb))
                         {
-                            apps.Add(new AppInfo
-                            {
-                                Name = name,
-                                Command = uninstall ?? "",
-                                Publisher = publisher ?? "Unknown",
-                                InstallDate = installDate ?? "Unknown"
-                            });
+                            double mb = kb / 1024.0;
+                            sizeText = $"{mb:F1} MB";
                         }
+
+                        apps.Add(new AppInfo
+                        {
+                            Name = name,
+                            Publisher = publisher ?? "Unknown",
+                            InstallDate = installDate ?? "Unknown",
+                            Size = sizeText,
+                            Command = uninstall ?? ""
+                        });
                     }
                     catch
                     {
@@ -76,7 +91,7 @@ namespace Tidy
                 .OrderBy(a => a.Name)
                 .ToList();
 
-            Logs.AppendText($"Loaded {apps.Count} apps\n");
+            Log($"Loaded {apps.Count} applications");
         }
 
         private async void Refresh_Click(object sender, RoutedEventArgs e)
@@ -85,7 +100,7 @@ namespace Tidy
 
             await LoadAppsAsync();
 
-            Logs.AppendText("Refresh complete\n");
+            Log("Refresh complete");
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -93,7 +108,9 @@ namespace Tidy
             string query = SearchBox.Text.ToLower();
 
             AppsList.ItemsSource = apps
-                .Where(a => a.Name.ToLower().Contains(query))
+                .Where(a =>
+                    a.Name.ToLower().Contains(query) ||
+                    a.Publisher.ToLower().Contains(query))
                 .OrderBy(a => a.Name)
                 .ToList();
         }
@@ -122,12 +139,57 @@ namespace Tidy
                     UseShellExecute = true
                 });
 
-                Logs.AppendText($"Started uninstall: {app.Name}\n");
+                Log($"Started uninstall: {app.Name}");
             }
             catch (Exception ex)
             {
-                Logs.AppendText($"Error: {ex.Message}\n");
+                Log($"Error: {ex.Message}");
             }
+        }
+
+        private void Export_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                StringBuilder csv = new();
+
+                csv.AppendLine("Name,Publisher,InstallDate,Size");
+
+                foreach (var app in apps)
+                {
+                    csv.AppendLine(
+                        $"\"{app.Name}\"," +
+                        $"\"{app.Publisher}\"," +
+                        $"\"{app.InstallDate}\"," +
+                        $"\"{app.Size}\"");
+                }
+
+                string path = Path.Combine(
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.Desktop),
+                    "Tidy_Export.csv");
+
+                File.WriteAllText(path, csv.ToString());
+
+                Log($"Exported app list to: {path}");
+
+                MessageBox.Show("Export complete.");
+            }
+            catch (Exception ex)
+            {
+                Log($"Export failed: {ex.Message}");
+            }
+        }
+
+        private void Log(string message)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Logs.AppendText(
+                    $"[{DateTime.Now:T}] {message}\n");
+
+                Logs.ScrollToEnd();
+            });
         }
     }
 
@@ -136,6 +198,7 @@ namespace Tidy
         public string Name { get; set; } = "";
         public string Publisher { get; set; } = "";
         public string InstallDate { get; set; } = "";
+        public string Size { get; set; } = "";
         public string Command { get; set; } = "";
     }
 }
