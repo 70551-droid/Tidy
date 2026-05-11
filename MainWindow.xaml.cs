@@ -1,3 +1,5 @@
+// MainWindow.xaml.cs
+
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -28,6 +30,8 @@ namespace Tidy
         private async Task LoadAppsAsync()
         {
             Log("Loading installed applications...");
+
+            MainProgress.IsIndeterminate = true;
 
             await Task.Run(() =>
             {
@@ -91,6 +95,10 @@ namespace Tidy
                 .OrderBy(a => a.Name)
                 .ToList();
 
+            AppCountText.Text = apps.Count.ToString();
+
+            MainProgress.IsIndeterminate = false;
+
             Log($"Loaded {apps.Count} applications");
         }
 
@@ -123,6 +131,15 @@ namespace Tidy
                 return;
             }
 
+            var result = MessageBox.Show(
+                $"Are you sure you want to uninstall:\n\n{app.Name}?",
+                "Confirm Uninstall",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
             if (string.IsNullOrWhiteSpace(app.Command))
             {
                 MessageBox.Show("No uninstall command found.");
@@ -131,6 +148,8 @@ namespace Tidy
 
             try
             {
+                MainProgress.IsIndeterminate = true;
+
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
@@ -144,6 +163,10 @@ namespace Tidy
             catch (Exception ex)
             {
                 Log($"Error: {ex.Message}");
+            }
+            finally
+            {
+                MainProgress.IsIndeterminate = false;
             }
         }
 
@@ -171,9 +194,11 @@ namespace Tidy
 
                 File.WriteAllText(path, csv.ToString());
 
-                Log($"Exported app list to: {path}");
+                Log($"Exported app list to Desktop");
 
-                MessageBox.Show("Export complete.");
+                MessageBox.Show(
+                    "CSV exported to Desktop.",
+                    "Export Complete");
             }
             catch (Exception ex)
             {
