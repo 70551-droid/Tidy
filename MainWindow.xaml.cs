@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -28,68 +29,20 @@ namespace Tidy
             {
                 apps.Clear();
 
-                using var key = Registry.LocalMachine.OpenSubKey(
+                LoadRegistryApps(
+                    Registry.LocalMachine,
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
 
-                if (key == null)
-                    return;
-
-                foreach (var sub in key.GetSubKeyNames())
-                {
-                    try
-                    {
-                        using var sk = key.OpenSubKey(sub);
-
-                        string? name =
-                            sk?.GetValue("DisplayName") as string;
-
-                        if (string.IsNullOrWhiteSpace(name))
-                            continue;
-
-                        string? uninstall =
-                            sk?.GetValue("UninstallString") as string;
-
-                        string? publisher =
-                            sk?.GetValue("Publisher") as string;
-
-                        string? installDate =
-                            sk?.GetValue("InstallDate") as string;
-
-                        object? sizeObj =
-                            sk?.GetValue("EstimatedSize");
-
-                        string sizeText = "Unknown";
-
-                        double sizeMb = 0;
-
-                        if (sizeObj != null &&
-                            int.TryParse(sizeObj.ToString(), out int kb))
-                        {
-                            sizeMb = kb / 1024.0;
-                            sizeText = $"{sizeMb:F1} MB";
-                        }
-
-                        apps.Add(new AppInfo
-                        {
-                            Name = name,
-                            Publisher = publisher ?? "Unknown",
-                            InstallDate = installDate ?? "Unknown",
-                            Size = sizeText,
-                            SizeMb = sizeMb,
-                            Command = uninstall ?? ""
-                        });
-                    }
-                    catch
-                    {
-                    }
-                }
+                LoadRegistryApps(
+                    Registry.CurrentUser,
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
             });
 
             var sortedApps = apps
                 .OrderByDescending(a => a.SizeMb)
                 .ToList();
 
-            AppsList.ItemsSource = sortedApps;
+            AppsGrid.ItemsSource = sortedApps;
 
             InstalledCountText.Text =
                 sortedApps.Count.ToString();
@@ -102,23 +55,80 @@ namespace Tidy
 
             CalculateCleanupScore(totalGb);
 
-            GenerateSuggestions(sortedApps);
+            LoadStartupApps();
+
+            ActivityText.Text =
+                $"Last scan completed at {DateTime.Now:t}";
+        }
+
+        private void LoadRegistryApps(RegistryKey root, string path)
+        {
+            using var key = root.OpenSubKey(path);
+
+            if (key == null)
+                return;
+
+            foreach (var sub in key.GetSubKeyNames())
+            {
+                try
+                {
+                    using var sk = key.OpenSubKey(sub);
+
+                    string? name =
+                        sk?.GetValue("DisplayName") as string;
+
+                    if (string.IsNullOrWhiteSpace(name))
+                        continue;
+
+                    string? uninstall =
+                        sk?.GetValue("UninstallString") as string;
+
+                    string? publisher =
+                        sk?.GetValue("Publisher") as string;
+
+                    object? sizeObj =
+                        sk?.GetValue("EstimatedSize");
+
+                    double sizeMb = 0;
+
+                    string sizeText = "Unknown";
+
+                    if (sizeObj != null &&
+                        int.TryParse(sizeObj.ToString(), out int kb))
+                    {
+                        sizeMb = kb / 1024.0;
+                        sizeText = $"{sizeMb:F1} MB";
+                    }
+
+                    apps.Add(new AppInfo
+                    {
+                        Name = name,
+                        Publisher = publisher ?? "Unknown",
+                        Size = sizeText,
+                        SizeMb = sizeMb,
+                        Command = uninstall ?? ""
+                    });
+                }
+                catch
+                {
+                }
+            }
         }
 
         private void CalculateCleanupScore(double totalGb)
         {
             int score = 100;
 
-            if (apps.Count > 100)
+            if (apps.Count > 120)
                 score -= 20;
 
-            if (totalGb > 100)
-                score -= 25;
-
-            if (GetStartupApps().Count > 15)
+            if (totalGb > 150)
                 score -= 20;
 
             if (apps.Count(a => a.SizeMb > 1024) > 10)
+                score -= 20;
+
+            if (GetStartupApps().Count > 15)
                 score -= 15;
 
             if (score < 0)
@@ -137,56 +147,20 @@ namespace Tidy
                 CleanupStatusText.Text = "Heavy cleanup needed";
         }
 
-        private void GenerateSuggestions(List<AppInfo> sortedApps)
+        private void LoadStartupApps()
         {
-            var largeApps = sortedApps
-                .Where(a => a.SizeMb > 1024)
-                .Take(5)
-                .Select(a => a.Name)
-                .ToList();
-
-            if (largeApps.Any())
-            {
-                LargeAppsText.Text =
-                    "Large apps detected: " +
-                    string.Join(", ", largeApps);
-            }
-            else
-            {
-                LargeAppsText.Text =
-                    "No unusually large apps detected.";
-            }
-
             var startupApps = GetStartupApps();
 
             if (startupApps.Any())
             {
                 StartupAppsText.Text =
-                    "Startup-heavy apps: " +
-                    string.Join(", ", startupApps.Take(5));
+                    string.Join(Environment.NewLine,
+                        startupApps.Take(10));
             }
             else
             {
                 StartupAppsText.Text =
-                    "No major startup apps detected.";
-            }
-
-            var reviewApps = sortedApps
-                .Where(a => a.SizeMb > 500)
-                .Take(5)
-                .Select(a => a.Name)
-                .ToList();
-
-            if (reviewApps.Any())
-            {
-                UnusedAppsText.Text =
-                    "Apps worth reviewing: " +
-                    string.Join(", ", reviewApps);
-            }
-            else
-            {
-                UnusedAppsText.Text =
-                    "No cleanup suggestions available.";
+                    "No startup apps detected.";
             }
         }
 
@@ -196,14 +170,14 @@ namespace Tidy
 
             try
             {
-                using var startupKey =
+                using var key =
                     Registry.CurrentUser.OpenSubKey(
                         @"Software\Microsoft\Windows\CurrentVersion\Run");
 
-                if (startupKey != null)
+                if (key != null)
                 {
                     startupApps.AddRange(
-                        startupKey.GetValueNames());
+                        key.GetValueNames());
                 }
             }
             catch
@@ -215,7 +189,7 @@ namespace Tidy
 
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
-            AppsList.ItemsSource = null;
+            AppsGrid.ItemsSource = null;
 
             await LoadAppsAsync();
         }
@@ -225,12 +199,53 @@ namespace Tidy
             string query =
                 SearchBox.Text.ToLower();
 
-            AppsList.ItemsSource = apps
+            AppsGrid.ItemsSource = apps
                 .Where(a =>
                     a.Name.ToLower().Contains(query) ||
                     a.Publisher.ToLower().Contains(query))
                 .OrderByDescending(a => a.SizeMb)
                 .ToList();
+        }
+
+        private void UninstallApp(AppInfo app)
+        {
+            if (string.IsNullOrWhiteSpace(app.Command))
+            {
+                MessageBox.Show(
+                    "No uninstall command available.",
+                    "Tidy");
+
+                return;
+            }
+
+            var result = MessageBox.Show(
+                $"Uninstall {app.Name}?",
+                "Confirm Uninstall",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c {app.Command}",
+                    UseShellExecute = true,
+                    Verb = "runas"
+                });
+
+                ActivityText.Text =
+                    $"Started uninstall for {app.Name}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Tidy");
+            }
         }
     }
 
@@ -239,8 +254,6 @@ namespace Tidy
         public string Name { get; set; } = "";
 
         public string Publisher { get; set; } = "";
-
-        public string InstallDate { get; set; } = "";
 
         public string Size { get; set; } = "";
 
