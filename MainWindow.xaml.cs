@@ -60,11 +60,13 @@ namespace Tidy
 
                         string sizeText = "Unknown";
 
+                        double sizeMb = 0;
+
                         if (sizeObj != null &&
                             int.TryParse(sizeObj.ToString(), out int kb))
                         {
-                            double mb = kb / 1024.0;
-                            sizeText = $"{mb:F1} MB";
+                            sizeMb = kb / 1024.0;
+                            sizeText = $"{sizeMb:F1} MB";
                         }
 
                         apps.Add(new AppInfo
@@ -73,6 +75,7 @@ namespace Tidy
                             Publisher = publisher ?? "Unknown",
                             InstallDate = installDate ?? "Unknown",
                             Size = sizeText,
+                            SizeMb = sizeMb,
                             Command = uninstall ?? ""
                         });
                     }
@@ -83,7 +86,7 @@ namespace Tidy
             });
 
             var sortedApps = apps
-                .OrderBy(a => a.Name)
+                .OrderByDescending(a => a.SizeMb)
                 .ToList();
 
             AppsList.ItemsSource = sortedApps;
@@ -91,23 +94,123 @@ namespace Tidy
             InstalledCountText.Text =
                 sortedApps.Count.ToString();
 
-            double totalGb = 0;
+            double totalGb =
+                sortedApps.Sum(a => a.SizeMb) / 1024.0;
 
-            foreach (var app in sortedApps)
+            DiskUsageText.Text =
+                $"{totalGb:F2} GB";
+
+            CalculateCleanupScore(totalGb);
+
+            GenerateSuggestions(sortedApps);
+        }
+
+        private void CalculateCleanupScore(double totalGb)
+        {
+            int score = 100;
+
+            if (apps.Count > 100)
+                score -= 20;
+
+            if (totalGb > 100)
+                score -= 25;
+
+            if (GetStartupApps().Count > 15)
+                score -= 20;
+
+            if (apps.Count(a => a.SizeMb > 1024) > 10)
+                score -= 15;
+
+            if (score < 0)
+                score = 0;
+
+            CleanupScoreText.Text =
+                score.ToString();
+
+            if (score >= 80)
+                CleanupStatusText.Text = "Excellent";
+            else if (score >= 60)
+                CleanupStatusText.Text = "Good";
+            else if (score >= 40)
+                CleanupStatusText.Text = "Needs cleanup";
+            else
+                CleanupStatusText.Text = "Heavy cleanup needed";
+        }
+
+        private void GenerateSuggestions(List<AppInfo> sortedApps)
+        {
+            var largeApps = sortedApps
+                .Where(a => a.SizeMb > 1024)
+                .Take(5)
+                .Select(a => a.Name)
+                .ToList();
+
+            if (largeApps.Any())
             {
-                if (app.Size.Contains("MB"))
-                {
-                    string raw =
-                        app.Size.Replace("MB", "").Trim();
-
-                    if (double.TryParse(raw, out double mb))
-                    {
-                        totalGb += mb / 1024.0;
-                    }
-                }
+                LargeAppsText.Text =
+                    "Large apps detected: " +
+                    string.Join(", ", largeApps);
+            }
+            else
+            {
+                LargeAppsText.Text =
+                    "No unusually large apps detected.";
             }
 
-            DiskUsageText.Text = $"{totalGb:F2} GB";
+            var startupApps = GetStartupApps();
+
+            if (startupApps.Any())
+            {
+                StartupAppsText.Text =
+                    "Startup-heavy apps: " +
+                    string.Join(", ", startupApps.Take(5));
+            }
+            else
+            {
+                StartupAppsText.Text =
+                    "No major startup apps detected.";
+            }
+
+            var reviewApps = sortedApps
+                .Where(a => a.SizeMb > 500)
+                .Take(5)
+                .Select(a => a.Name)
+                .ToList();
+
+            if (reviewApps.Any())
+            {
+                UnusedAppsText.Text =
+                    "Apps worth reviewing: " +
+                    string.Join(", ", reviewApps);
+            }
+            else
+            {
+                UnusedAppsText.Text =
+                    "No cleanup suggestions available.";
+            }
+        }
+
+        private List<string> GetStartupApps()
+        {
+            List<string> startupApps = new();
+
+            try
+            {
+                using var startupKey =
+                    Registry.CurrentUser.OpenSubKey(
+                        @"Software\Microsoft\Windows\CurrentVersion\Run");
+
+                if (startupKey != null)
+                {
+                    startupApps.AddRange(
+                        startupKey.GetValueNames());
+                }
+            }
+            catch
+            {
+            }
+
+            return startupApps;
         }
 
         private async void Refresh_Click(object sender, RoutedEventArgs e)
@@ -126,7 +229,7 @@ namespace Tidy
                 .Where(a =>
                     a.Name.ToLower().Contains(query) ||
                     a.Publisher.ToLower().Contains(query))
-                .OrderBy(a => a.Name)
+                .OrderByDescending(a => a.SizeMb)
                 .ToList();
         }
     }
@@ -140,6 +243,8 @@ namespace Tidy
         public string InstallDate { get; set; } = "";
 
         public string Size { get; set; } = "";
+
+        public double SizeMb { get; set; }
 
         public string Command { get; set; } = "";
     }
