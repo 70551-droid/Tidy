@@ -2,13 +2,11 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 
 namespace Tidy
@@ -72,7 +70,7 @@ namespace Tidy
                             sizeText = $"{mb:F1} MB";
                         }
 
-                        BitmapSource? icon = null;
+                        BitmapImage? icon = null;
 
                         try
                         {
@@ -85,13 +83,12 @@ namespace Tidy
 
                                 if (File.Exists(iconPath))
                                 {
-                                    Icon ico =
-                                        Icon.ExtractAssociatedIcon(iconPath);
+                                    icon = new BitmapImage();
 
-                                    icon = Imaging.CreateBitmapSourceFromHIcon(
-                                        ico.Handle,
-                                        Int32Rect.Empty,
-                                        BitmapSizeOptions.FromEmptyOptions());
+                                    icon.BeginInit();
+                                    icon.UriSource = new Uri(iconPath);
+                                    icon.DecodePixelWidth = 32;
+                                    icon.EndInit();
                                 }
                             }
                         }
@@ -162,7 +159,7 @@ namespace Tidy
 
     public class AppInfo
     {
-        public BitmapSource? Icon { get; set; }
+        public BitmapImage? Icon { get; set; }
 
         public string Name { get; set; } = "";
 
