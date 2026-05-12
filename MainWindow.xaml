@@ -295,12 +295,102 @@
                     <DataGrid x:Name="AppsGrid"
                               Grid.Row="1"
                               AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="False"
+                              SelectionMode="Single"
+                              SelectionUnit="FullRow"
+                              GridLinesVisibility="None"
+                              HeadersVisibility="Column"
+                              BorderThickness="0"
                               Background="#11182D"
                               Foreground="White"
-                              BorderBrush="#1D2945"
-                              HeadersVisibility="Column"
                               RowBackground="#11182D"
                               AlternatingRowBackground="#182038">
+
+                        <DataGrid.Resources>
+
+                            <!-- COLUMN HEADERS -->
+                            <Style TargetType="DataGridColumnHeader">
+
+                                <Setter Property="Background"
+                                        Value="#182038"/>
+
+                                <Setter Property="Foreground"
+                                        Value="White"/>
+
+                                <Setter Property="BorderBrush"
+                                        Value="#1D2945"/>
+
+                                <Setter Property="FontWeight"
+                                        Value="Bold"/>
+
+                                <Setter Property="Height"
+                                        Value="42"/>
+
+                            </Style>
+
+                            <!-- ROW STYLE -->
+                            <Style TargetType="DataGridRow">
+
+                                <Setter Property="Foreground"
+                                        Value="White"/>
+
+                                <Setter Property="Background"
+                                        Value="#11182D"/>
+
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
+
+                                <Style.Triggers>
+
+                                    <!-- HOVER -->
+                                    <Trigger Property="IsMouseOver"
+                                             Value="True">
+
+                                        <Setter Property="Background"
+                                                Value="#22304F"/>
+
+                                    </Trigger>
+
+                                    <!-- SELECTED -->
+                                    <Trigger Property="IsSelected"
+                                             Value="True">
+
+                                        <Setter Property="Background"
+                                                Value="#1B5CFF"/>
+
+                                        <Setter Property="Foreground"
+                                                Value="White"/>
+
+                                    </Trigger>
+
+                                </Style.Triggers>
+
+                            </Style>
+
+                            <!-- CELL STYLE -->
+                            <Style TargetType="DataGridCell">
+
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
+
+                                <Setter Property="Foreground"
+                                        Value="White"/>
+
+                                <Setter Property="Padding"
+                                        Value="10,6"/>
+
+                                <Setter Property="Background"
+                                        Value="Transparent"/>
+
+                                <Setter Property="FocusVisualStyle"
+                                        Value="{x:Null}"/>
+
+                            </Style>
+
+                        </DataGrid.Resources>
 
                         <DataGrid.Columns>
 
