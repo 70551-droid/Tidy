@@ -1,7 +1,6 @@
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -70,40 +69,13 @@ namespace Tidy
                             sizeText = $"{mb:F1} MB";
                         }
 
-                        BitmapImage? icon = null;
-
-                        try
-                        {
-                            string? iconPath =
-                                sk?.GetValue("DisplayIcon") as string;
-
-                            if (!string.IsNullOrWhiteSpace(iconPath))
-                            {
-                                iconPath = iconPath.Split(',')[0];
-
-                                if (File.Exists(iconPath))
-                                {
-                                    icon = new BitmapImage();
-
-                                    icon.BeginInit();
-                                    icon.UriSource = new Uri(iconPath);
-                                    icon.DecodePixelWidth = 32;
-                                    icon.EndInit();
-                                }
-                            }
-                        }
-                        catch
-                        {
-                        }
-
                         apps.Add(new AppInfo
                         {
                             Name = name,
                             Publisher = publisher ?? "Unknown",
                             InstallDate = installDate ?? "Unknown",
                             Size = sizeText,
-                            Command = uninstall ?? "",
-                            Icon = icon
+                            Command = uninstall ?? ""
                         });
                     }
                     catch
@@ -112,15 +84,18 @@ namespace Tidy
                 }
             });
 
-            AppsList.ItemsSource = apps
+            var sortedApps = apps
                 .OrderBy(a => a.Name)
                 .ToList();
 
-            InstalledCountText.Text = apps.Count.ToString();
+            AppsList.ItemsSource = sortedApps;
+
+            InstalledCountText.Text =
+                sortedApps.Count.ToString();
 
             double totalGb = 0;
 
-            foreach (var app in apps)
+            foreach (var app in sortedApps)
             {
                 if (app.Size.Contains("MB"))
                 {
@@ -146,7 +121,8 @@ namespace Tidy
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string query = SearchBox.Text.ToLower();
+            string query =
+                SearchBox.Text.ToLower();
 
             AppsList.ItemsSource = apps
                 .Where(a =>
@@ -159,8 +135,6 @@ namespace Tidy
 
     public class AppInfo
     {
-        public BitmapImage? Icon { get; set; }
-
         public string Name { get; set; } = "";
 
         public string Publisher { get; set; } = "";
