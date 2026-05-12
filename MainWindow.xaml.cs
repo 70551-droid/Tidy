@@ -1,5 +1,3 @@
-// MainWindow.xaml.cs
-
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -29,16 +27,12 @@ namespace Tidy
 
         private async Task LoadAppsAsync()
         {
-            Log("Loading installed applications...");
-
-            MainProgress.IsIndeterminate = true;
-
             await Task.Run(() =>
             {
                 apps.Clear();
 
                 using var key = Registry.LocalMachine.OpenSubKey(
-                    @"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall");
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
 
                 if (key == null)
                     return;
@@ -95,11 +89,25 @@ namespace Tidy
                 .OrderBy(a => a.Name)
                 .ToList();
 
-            AppCountText.Text = apps.Count.ToString();
+            InstalledCountText.Text = apps.Count.ToString();
 
-            MainProgress.IsIndeterminate = false;
+            double totalGb = 0;
 
-            Log($"Loaded {apps.Count} applications");
+            foreach (var app in apps)
+            {
+                if (app.Size.Contains("MB"))
+                {
+                    string raw =
+                        app.Size.Replace("MB", "").Trim();
+
+                    if (double.TryParse(raw, out double mb))
+                    {
+                        totalGb += mb / 1024.0;
+                    }
+                }
+            }
+
+            DiskUsageText.Text = $"{totalGb:F2} GB";
         }
 
         private async void Refresh_Click(object sender, RoutedEventArgs e)
@@ -107,8 +115,6 @@ namespace Tidy
             AppsList.ItemsSource = null;
 
             await LoadAppsAsync();
-
-            Log("Refresh complete");
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -148,8 +154,6 @@ namespace Tidy
 
             try
             {
-                MainProgress.IsIndeterminate = true;
-
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
@@ -157,64 +161,11 @@ namespace Tidy
                     Verb = "runas",
                     UseShellExecute = true
                 });
-
-                Log($"Started uninstall: {app.Name}");
             }
             catch (Exception ex)
             {
-                Log($"Error: {ex.Message}");
+                MessageBox.Show(ex.Message);
             }
-            finally
-            {
-                MainProgress.IsIndeterminate = false;
-            }
-        }
-
-        private void Export_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                StringBuilder csv = new();
-
-                csv.AppendLine("Name,Publisher,InstallDate,Size");
-
-                foreach (var app in apps)
-                {
-                    csv.AppendLine(
-                        $"\"{app.Name}\"," +
-                        $"\"{app.Publisher}\"," +
-                        $"\"{app.InstallDate}\"," +
-                        $"\"{app.Size}\"");
-                }
-
-                string path = Path.Combine(
-                    Environment.GetFolderPath(
-                        Environment.SpecialFolder.Desktop),
-                    "Tidy_Export.csv");
-
-                File.WriteAllText(path, csv.ToString());
-
-                Log($"Exported app list to Desktop");
-
-                MessageBox.Show(
-                    "CSV exported to Desktop.",
-                    "Export Complete");
-            }
-            catch (Exception ex)
-            {
-                Log($"Export failed: {ex.Message}");
-            }
-        }
-
-        private void Log(string message)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                Logs.AppendText(
-                    $"[{DateTime.Now:T}] {message}\n");
-
-                Logs.ScrollToEnd();
-            });
         }
     }
 
