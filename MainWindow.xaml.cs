@@ -2,12 +2,14 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
+using System.Windows.Media.Imaging;
 
 namespace Tidy
 {
@@ -70,13 +72,41 @@ namespace Tidy
                             sizeText = $"{mb:F1} MB";
                         }
 
+                        BitmapSource? icon = null;
+
+                        try
+                        {
+                            string? iconPath =
+                                sk?.GetValue("DisplayIcon") as string;
+
+                            if (!string.IsNullOrWhiteSpace(iconPath))
+                            {
+                                iconPath = iconPath.Split(',')[0];
+
+                                if (File.Exists(iconPath))
+                                {
+                                    Icon ico =
+                                        Icon.ExtractAssociatedIcon(iconPath);
+
+                                    icon = Imaging.CreateBitmapSourceFromHIcon(
+                                        ico.Handle,
+                                        Int32Rect.Empty,
+                                        BitmapSizeOptions.FromEmptyOptions());
+                                }
+                            }
+                        }
+                        catch
+                        {
+                        }
+
                         apps.Add(new AppInfo
                         {
                             Name = name,
                             Publisher = publisher ?? "Unknown",
                             InstallDate = installDate ?? "Unknown",
                             Size = sizeText,
-                            Command = uninstall ?? ""
+                            Command = uninstall ?? "",
+                            Icon = icon
                         });
                     }
                     catch
@@ -128,53 +158,20 @@ namespace Tidy
                 .OrderBy(a => a.Name)
                 .ToList();
         }
-
-        private void Uninstall_Click(object sender, RoutedEventArgs e)
-        {
-            if (AppsList.SelectedItem is not AppInfo app)
-            {
-                MessageBox.Show("Select an app first.");
-                return;
-            }
-
-            var result = MessageBox.Show(
-                $"Are you sure you want to uninstall:\n\n{app.Name}?",
-                "Confirm Uninstall",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-
-            if (result != MessageBoxResult.Yes)
-                return;
-
-            if (string.IsNullOrWhiteSpace(app.Command))
-            {
-                MessageBox.Show("No uninstall command found.");
-                return;
-            }
-
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = "/c " + app.Command,
-                    Verb = "runas",
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
     }
 
     public class AppInfo
     {
+        public BitmapSource? Icon { get; set; }
+
         public string Name { get; set; } = "";
+
         public string Publisher { get; set; } = "";
+
         public string InstallDate { get; set; } = "";
+
         public string Size { get; set; } = "";
+
         public string Command { get; set; } = "";
     }
 }
