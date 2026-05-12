@@ -10,7 +10,7 @@
     <Grid>
 
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="230"/>
+            <ColumnDefinition Width="260"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -19,40 +19,123 @@
                 BorderBrush="#1B2236"
                 BorderThickness="0,0,1,0">
 
-            <StackPanel Margin="18">
+            <Grid>
 
-                <StackPanel Margin="0,20,0,30">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- LOGO -->
+                <StackPanel Margin="24,28,24,24">
+
+                    <Border Width="62"
+                            Height="62"
+                            CornerRadius="18"
+                            Background="#1B5CFF">
+
+                        <TextBlock Text="T"
+                                   Foreground="White"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+
+                    </Border>
 
                     <TextBlock Text="Tidy"
-                               FontSize="34"
+                               FontSize="32"
                                FontWeight="Bold"
-                               Foreground="White"/>
+                               Foreground="White"
+                               Margin="0,16,0,0"/>
 
                     <TextBlock Text="Windows 11 Cleanup"
                                Foreground="#7E8AA8"
-                               FontSize="13"/>
+                               FontSize="13"
+                               Margin="0,4,0,0"/>
+
                 </StackPanel>
 
-                <Button Content="Dashboard"
-                        Height="48"
-                        Margin="0,0,0,10"/>
+                <!-- NAVIGATION -->
+                <StackPanel Grid.Row="1"
+                            Margin="16,10,16,10">
 
-                <Button Content="Installed Apps"
-                        Height="48"
-                        Margin="0,0,0,10"/>
+                    <StackPanel.Resources>
 
-                <Button Content="Bloatware"
-                        Height="48"
-                        Margin="0,0,0,10"/>
+                        <Style TargetType="Button">
 
-                <Button Content="Leftovers"
-                        Height="48"
-                        Margin="0,0,0,10"/>
+                            <Setter Property="Height" Value="52"/>
+                            <Setter Property="Margin" Value="0,0,0,10"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Background" Value="#11182D"/>
+                            <Setter Property="BorderBrush" Value="#1D2945"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="FontSize" Value="15"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                            <Setter Property="Padding" Value="18,0,0,0"/>
+                            <Setter Property="Cursor" Value="Hand"/>
 
-                <Button Content="Activity"
-                        Height="48"/>
+                            <Style.Triggers>
 
-            </StackPanel>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#1B5CFF"/>
+                                    <Setter Property="BorderBrush" Value="#4A7DFF"/>
+                                </Trigger>
+
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="#0F4CE0"/>
+                                </Trigger>
+
+                            </Style.Triggers>
+
+                        </Style>
+
+                    </StackPanel.Resources>
+
+                    <Button Content="🏠  Dashboard"/>
+
+                    <Button Content="📦  Installed Apps"/>
+
+                    <Button Content="🧹  Bloatware"/>
+
+                    <Button Content="🗑  Leftovers"/>
+
+                    <Button Content="⚡  Startup Apps"/>
+
+                    <Button Content="📊  Activity"/>
+
+                    <Button Content="⚙  Settings"/>
+
+                </StackPanel>
+
+                <!-- FOOTER -->
+                <Border Grid.Row="2"
+                        Margin="16"
+                        Padding="16"
+                        CornerRadius="16"
+                        Background="#11182D"
+                        BorderBrush="#1D2945"
+                        BorderThickness="1">
+
+                    <StackPanel>
+
+                        <TextBlock Text="System Status"
+                                   Foreground="#8FA1CC"
+                                   FontSize="12"/>
+
+                        <TextBlock Text="Tidy is running normally"
+                                   Foreground="White"
+                                   FontSize="14"
+                                   Margin="0,6,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
         </Border>
 
         <!-- MAIN -->
@@ -80,6 +163,7 @@
                                Foreground="#95A1BE"
                                FontSize="15"
                                Margin="0,6,0,0"/>
+
                 </StackPanel>
 
                 <Button Content="Refresh"
@@ -87,7 +171,10 @@
                         Height="42"
                         DockPanel.Dock="Right"
                         HorizontalAlignment="Right"
-                        Click="Refresh_Click"/>
+                        Click="Refresh_Click"
+                        Background="#1B5CFF"
+                        Foreground="White"
+                        BorderBrush="#4A7DFF"/>
 
             </DockPanel>
 
@@ -204,7 +291,10 @@
                                  Width="260"
                                  Height="38"
                                  DockPanel.Dock="Right"
-                                 TextChanged="SearchBox_TextChanged"/>
+                                 TextChanged="SearchBox_TextChanged"
+                                 Background="#182038"
+                                 Foreground="White"
+                                 BorderBrush="#2A3B66"/>
 
                     </DockPanel>
 
