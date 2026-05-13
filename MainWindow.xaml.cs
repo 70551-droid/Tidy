@@ -2,6 +2,7 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -87,6 +88,9 @@ namespace Tidy
                     string? publisher =
                         sk?.GetValue("Publisher") as string;
 
+                    string? location =
+                        sk?.GetValue("InstallLocation") as string;
+
                     object? sizeObj =
                         sk?.GetValue("EstimatedSize");
 
@@ -101,13 +105,26 @@ namespace Tidy
                         sizeText = $"{sizeMb:F1} MB";
                     }
 
+                    string uninstallType = "EXE";
+
+                    if (!string.IsNullOrWhiteSpace(uninstall) &&
+                        uninstall.Contains("msiexec",
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        uninstallType = "MSI";
+                    }
+
                     apps.Add(new AppInfo
                     {
                         Name = name,
                         Publisher = publisher ?? "Unknown",
                         Size = sizeText,
                         SizeMb = sizeMb,
-                        Command = uninstall ?? ""
+                        Command = uninstall ?? "",
+                        InstallLocation = string.IsNullOrWhiteSpace(location)
+                            ? "Unknown"
+                            : location,
+                        UninstallType = uninstallType
                     });
                 }
                 catch
@@ -149,18 +166,11 @@ namespace Tidy
 
         private void LoadStartupApps()
         {
-            var startupApps = GetStartupApps();
+            StartupListBox.Items.Clear();
 
-            if (startupApps.Any())
+            foreach (var app in GetStartupApps())
             {
-                StartupAppsText.Text =
-                    string.Join(Environment.NewLine,
-                        startupApps.Take(10));
-            }
-            else
-            {
-                StartupAppsText.Text =
-                    "No startup apps detected.";
+                StartupListBox.Items.Add(app);
             }
         }
 
@@ -187,6 +197,94 @@ namespace Tidy
             return startupApps;
         }
 
+        private void DisableStartup_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (StartupListBox.SelectedItem == null)
+            {
+                MessageBox.Show(
+                    "Select a startup app first.",
+                    "Tidy");
+
+                return;
+            }
+
+            string appName =
+                StartupListBox.SelectedItem.ToString() ?? "";
+
+            try
+            {
+                using var key =
+                    Registry.CurrentUser.OpenSubKey(
+                        @"Software\Microsoft\Windows\CurrentVersion\Run",
+                        true);
+
+                key?.DeleteValue(appName, false);
+
+                LoadStartupApps();
+
+                AddActivity(
+                    $"Disabled startup app: {appName}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Tidy");
+            }
+        }
+
+        private void CleanTemp_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            try
+            {
+                string tempPath =
+                    Path.GetTempPath();
+
+                int deletedFiles = 0;
+
+                long freedBytes = 0;
+
+                foreach (string file in Directory.GetFiles(
+                    tempPath,
+                    "*",
+                    SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        FileInfo info = new(file);
+
+                        freedBytes += info.Length;
+
+                        File.Delete(file);
+
+                        deletedFiles++;
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                double freedMb =
+                    freedBytes / 1024.0 / 1024.0;
+
+                TempCleanerResultText.Text =
+                    $"Removed {deletedFiles} temporary files.\nFreed {freedMb:F2} MB.";
+
+                AddActivity(
+                    $"Cleaned temp files ({freedMb:F2} MB)");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Tidy");
+            }
+        }
+
         private void AddActivity(string message)
         {
             string log =
@@ -197,19 +295,23 @@ namespace Tidy
             ActivityText.Text =
                 string.Join(
                     Environment.NewLine + Environment.NewLine,
-                    activityLogs.Take(8));
+                    activityLogs.Take(12));
         }
 
-        private async void Refresh_Click(object sender, RoutedEventArgs e)
+        private async void Refresh_Click(
+            object sender,
+            RoutedEventArgs e)
         {
             AppsGrid.ItemsSource = null;
 
-            AddActivity("Refreshing installed apps");
+            AddActivity("Refreshing dashboard");
 
             await LoadAppsAsync();
         }
 
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void SearchBox_TextChanged(
+            object sender,
+            TextChangedEventArgs e)
         {
             string query =
                 SearchBox.Text.ToLower();
@@ -222,7 +324,9 @@ namespace Tidy
                 .ToList();
         }
 
-        private void UninstallButton_Click(object sender, RoutedEventArgs e)
+        private void UninstallButton_Click(
+            object sender,
+            RoutedEventArgs e)
         {
             if (sender is not Button button)
                 return;
@@ -260,7 +364,6 @@ namespace Tidy
             {
                 string command = app.Command.Trim();
 
-                // MSI uninstall handling
                 if (command.Contains("msiexec",
                     StringComparison.OrdinalIgnoreCase))
                 {
@@ -278,7 +381,6 @@ namespace Tidy
                     return;
                 }
 
-                // quoted executable
                 if (command.StartsWith("\""))
                 {
                     int secondQuote =
@@ -310,7 +412,6 @@ namespace Tidy
                     }
                 }
 
-                // fallback
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
@@ -345,5 +446,9 @@ namespace Tidy
         public double SizeMb { get; set; }
 
         public string Command { get; set; } = "";
+
+        public string InstallLocation { get; set; } = "";
+
+        public string UninstallType { get; set; } = "";
     }
 }
