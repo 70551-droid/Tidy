@@ -63,7 +63,7 @@
 
                     <StackPanel.Resources>
 
-                        <Style TargetType="Button">
+                        <Style TargetType="">
 
                             <Setter Property="Height" Value="52"/>
                             <Setter Property="Margin" Value="0,0,0,10"/>
@@ -90,19 +90,19 @@
 
                     </StackPanel.Resources>
 
-                    <Button x:Name="DashboardButton"
+                    < x:Name="Dashboard"
                             Content="🏠  Dashboard"/>
 
-                    <Button x:Name="AppsButton"
+                    < x:Name="Apps"
                             Content="📦  Installed Apps"/>
 
-                    <Button x:Name="StartupButton"
+                    < x:Name="Startup"
                             Content="⚡  Startup Apps"/>
 
-                    <Button x:Name="ActivityButton"
+                    < x:Name="Activity"
                             Content="📊  Activity"/>
 
-                    <Button x:Name="SettingsButton"
+                    < x:Name="Settings"
                             Content="⚙  Settings"/>
 
                 </StackPanel>
@@ -416,7 +416,8 @@
                                         <Button Content="Uninstall"
                                                 Height="32"
                                                 Background="#D83B3B"
-                                                Foreground="White"/>
+                                                Foreground="White"
+                                                Click="UninstallButton_Click"/>
 
                                     </DataTemplate>
 
