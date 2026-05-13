@@ -13,6 +13,8 @@ namespace Tidy
     {
         private List<AppInfo> apps = new();
 
+        private readonly List<string> activityLogs = new();
+
         public MainWindow()
         {
             InitializeComponent();
@@ -57,8 +59,7 @@ namespace Tidy
 
             LoadStartupApps();
 
-            ActivityText.Text =
-                $"Last scan completed at {DateTime.Now:t}";
+            AddActivity("System scan completed");
         }
 
         private void LoadRegistryApps(RegistryKey root, string path)
@@ -134,8 +135,7 @@ namespace Tidy
             if (score < 0)
                 score = 0;
 
-            CleanupScoreText.Text =
-                score.ToString();
+            CleanupScoreText.Text = score.ToString();
 
             if (score >= 80)
                 CleanupStatusText.Text = "Excellent";
@@ -187,9 +187,24 @@ namespace Tidy
             return startupApps;
         }
 
+        private void AddActivity(string message)
+        {
+            string log =
+                $"{DateTime.Now:t} — {message}";
+
+            activityLogs.Insert(0, log);
+
+            ActivityText.Text =
+                string.Join(
+                    Environment.NewLine + Environment.NewLine,
+                    activityLogs.Take(8));
+        }
+
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
             AppsGrid.ItemsSource = null;
+
+            AddActivity("Refreshing installed apps");
 
             await LoadAppsAsync();
         }
@@ -207,19 +222,33 @@ namespace Tidy
                 .ToList();
         }
 
+        private void UninstallButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button)
+                return;
+
+            if (button.DataContext is not AppInfo app)
+                return;
+
+            UninstallApp(app);
+        }
+
         private void UninstallApp(AppInfo app)
         {
             if (string.IsNullOrWhiteSpace(app.Command))
             {
                 MessageBox.Show(
-                    "No uninstall command available.",
+                    "No uninstall command found.",
                     "Tidy");
+
+                AddActivity(
+                    $"Failed uninstall: {app.Name}");
 
                 return;
             }
 
             var result = MessageBox.Show(
-                $"Uninstall {app.Name}?",
+                $"Are you sure you want to uninstall:\n\n{app.Name} ?",
                 "Confirm Uninstall",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
@@ -229,22 +258,78 @@ namespace Tidy
 
             try
             {
+                string command = app.Command.Trim();
+
+                // MSI uninstall handling
+                if (command.Contains("msiexec",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c {command}",
+                        UseShellExecute = true,
+                        Verb = "runas"
+                    });
+
+                    AddActivity(
+                        $"Started MSI uninstall: {app.Name}");
+
+                    return;
+                }
+
+                // quoted executable
+                if (command.StartsWith("\""))
+                {
+                    int secondQuote =
+                        command.IndexOf('\"', 1);
+
+                    if (secondQuote > 1)
+                    {
+                        string exe =
+                            command.Substring(
+                                1,
+                                secondQuote - 1);
+
+                        string args =
+                            command.Substring(
+                                secondQuote + 1);
+
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = exe,
+                            Arguments = args,
+                            UseShellExecute = true,
+                            Verb = "runas"
+                        });
+
+                        AddActivity(
+                            $"Started uninstall: {app.Name}");
+
+                        return;
+                    }
+                }
+
+                // fallback
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/c {app.Command}",
+                    Arguments = $"/c {command}",
                     UseShellExecute = true,
                     Verb = "runas"
                 });
 
-                ActivityText.Text =
-                    $"Started uninstall for {app.Name}";
+                AddActivity(
+                    $"Started uninstall: {app.Name}");
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
                     ex.Message,
                     "Tidy");
+
+                AddActivity(
+                    $"Uninstall failed: {app.Name}");
             }
         }
     }
