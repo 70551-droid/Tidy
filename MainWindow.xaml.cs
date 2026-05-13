@@ -60,10 +60,16 @@ namespace Tidy
 
             LoadStartupApps();
 
+            LoadLargestApps();
+
+            LoadCleanupSuggestions();
+
             AddActivity("System scan completed");
         }
 
-        private void LoadRegistryApps(RegistryKey root, string path)
+        private void LoadRegistryApps(
+            RegistryKey root,
+            string path)
         {
             using var key = root.OpenSubKey(path);
 
@@ -121,7 +127,8 @@ namespace Tidy
                         Size = sizeText,
                         SizeMb = sizeMb,
                         Command = uninstall ?? "",
-                        InstallLocation = string.IsNullOrWhiteSpace(location)
+                        InstallLocation =
+                            string.IsNullOrWhiteSpace(location)
                             ? "Unknown"
                             : location,
                         UninstallType = uninstallType
@@ -164,19 +171,68 @@ namespace Tidy
                 CleanupStatusText.Text = "Heavy cleanup needed";
         }
 
+        private void LoadLargestApps()
+        {
+            var largest = apps
+                .OrderByDescending(a => a.SizeMb)
+                .Take(10)
+                .Select(a =>
+                    $"{a.Name} — {a.Size}");
+
+            LargestAppsText.Text =
+                string.Join(
+                    Environment.NewLine,
+                    largest);
+        }
+
+        private void LoadCleanupSuggestions()
+        {
+            List<string> suggestions = new();
+
+            foreach (var app in apps
+                .OrderByDescending(a => a.SizeMb)
+                .Take(5))
+            {
+                if (app.SizeMb > 2048)
+                {
+                    suggestions.Add(
+                        $"Large app detected: {app.Name}");
+                }
+            }
+
+            if (GetStartupApps().Count > 15)
+            {
+                suggestions.Add(
+                    "Too many startup applications enabled.");
+            }
+
+            if (!suggestions.Any())
+            {
+                suggestions.Add(
+                    "System looks clean.");
+            }
+
+            CleanupSuggestionsText.Text =
+                string.Join(
+                    Environment.NewLine +
+                    Environment.NewLine,
+                    suggestions);
+        }
+
         private void LoadStartupApps()
         {
             StartupListBox.Items.Clear();
 
             foreach (var app in GetStartupApps())
             {
-                StartupListBox.Items.Add(app);
+                StartupListBox.Items.Add(
+                    $"{app.Name} ({app.Impact})");
             }
         }
 
-        private List<string> GetStartupApps()
+        private List<StartupAppInfo> GetStartupApps()
         {
-            List<string> startupApps = new();
+            List<StartupAppInfo> startupApps = new();
 
             try
             {
@@ -186,8 +242,23 @@ namespace Tidy
 
                 if (key != null)
                 {
-                    startupApps.AddRange(
-                        key.GetValueNames());
+                    foreach (string name in key.GetValueNames())
+                    {
+                        string impact = "Low";
+
+                        if (name.Length > 15)
+                            impact = "Medium";
+
+                        if (name.Length > 25)
+                            impact = "High";
+
+                        startupApps.Add(
+                            new StartupAppInfo
+                            {
+                                Name = name,
+                                Impact = impact
+                            });
+                    }
                 }
             }
             catch
@@ -210,8 +281,11 @@ namespace Tidy
                 return;
             }
 
-            string appName =
+            string selected =
                 StartupListBox.SelectedItem.ToString() ?? "";
+
+            string appName =
+                selected.Split('(')[0].Trim();
 
             try
             {
@@ -272,7 +346,7 @@ namespace Tidy
                     freedBytes / 1024.0 / 1024.0;
 
                 TempCleanerResultText.Text =
-                    $"Removed {deletedFiles} temporary files.\nFreed {freedMb:F2} MB.";
+                    $"Removed {deletedFiles} files.\nFreed {freedMb:F2} MB.";
 
                 AddActivity(
                     $"Cleaned temp files ({freedMb:F2} MB)");
@@ -285,6 +359,46 @@ namespace Tidy
             }
         }
 
+        private void BatchUninstall_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (AppsGrid.SelectedItems.Count == 0)
+            {
+                MessageBox.Show(
+                    "Select apps first.",
+                    "Tidy");
+
+                return;
+            }
+
+            var result = MessageBox.Show(
+                $"Uninstall {AppsGrid.SelectedItems.Count} selected apps?",
+                "Batch Uninstall",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            foreach (var item in AppsGrid.SelectedItems)
+            {
+                if (item is AppInfo app)
+                {
+                    try
+                    {
+                        UninstallApp(app);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            AddActivity(
+                $"Started batch uninstall ({AppsGrid.SelectedItems.Count} apps)");
+        }
+
         private void AddActivity(string message)
         {
             string log =
@@ -294,8 +408,9 @@ namespace Tidy
 
             ActivityText.Text =
                 string.Join(
-                    Environment.NewLine + Environment.NewLine,
-                    activityLogs.Take(12));
+                    Environment.NewLine +
+                    Environment.NewLine,
+                    activityLogs.Take(15));
         }
 
         private async void Refresh_Click(
@@ -351,14 +466,7 @@ namespace Tidy
                 return;
             }
 
-            var result = MessageBox.Show(
-                $"Are you sure you want to uninstall:\n\n{app.Name} ?",
-                "Confirm Uninstall",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-
-            if (result != MessageBoxResult.Yes)
-                return;
+            DetectLeftovers(app);
 
             try
             {
@@ -433,6 +541,28 @@ namespace Tidy
                     $"Uninstall failed: {app.Name}");
             }
         }
+
+        private void DetectLeftovers(AppInfo app)
+        {
+            try
+            {
+                if (Directory.Exists(app.InstallLocation))
+                {
+                    AddActivity(
+                        $"Possible leftover folder detected for {app.Name}");
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    public class StartupAppInfo
+    {
+        public string Name { get; set; } = "";
+
+        public string Impact { get; set; } = "";
     }
 
     public class AppInfo
