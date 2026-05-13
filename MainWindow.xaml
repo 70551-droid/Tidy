@@ -63,7 +63,7 @@
 
                     <StackPanel.Resources>
 
-                        <Style TargetType="">
+                        <Style TargetType="Button">
 
                             <Setter Property="Height" Value="52"/>
                             <Setter Property="Margin" Value="0,0,0,10"/>
@@ -90,20 +90,20 @@
 
                     </StackPanel.Resources>
 
-                    < x:Name="Dashboard"
-                            Content="🏠  Dashboard"/>
+                    <Button x:Name="DashboardButton"
+                            Content="Dashboard"/>
 
-                    < x:Name="Apps"
-                            Content="📦  Installed Apps"/>
+                    <Button x:Name="AppsButton"
+                            Content="Installed Apps"/>
 
-                    < x:Name="Startup"
-                            Content="⚡  Startup Apps"/>
+                    <Button x:Name="StartupButton"
+                            Content="Startup Apps"/>
 
-                    < x:Name="Activity"
-                            Content="📊  Activity"/>
+                    <Button x:Name="ActivityButton"
+                            Content="Activity"/>
 
-                    < x:Name="Settings"
-                            Content="⚙  Settings"/>
+                    <Button x:Name="SettingsButton"
+                            Content="Settings"/>
 
                 </StackPanel>
 
@@ -311,7 +311,6 @@
 
                         <DataGrid.Resources>
 
-                            <!-- COLUMN HEADERS -->
                             <Style TargetType="DataGridColumnHeader">
 
                                 <Setter Property="Background"
@@ -331,7 +330,6 @@
 
                             </Style>
 
-                            <!-- ROW STYLE -->
                             <Style TargetType="DataGridRow">
 
                                 <Setter Property="Foreground"
@@ -345,7 +343,6 @@
 
                                 <Style.Triggers>
 
-                                    <!-- HOVER -->
                                     <Trigger Property="IsMouseOver"
                                              Value="True">
 
@@ -354,7 +351,6 @@
 
                                     </Trigger>
 
-                                    <!-- SELECTED -->
                                     <Trigger Property="IsSelected"
                                              Value="True">
 
@@ -370,7 +366,6 @@
 
                             </Style>
 
-                            <!-- CELL STYLE -->
                             <Style TargetType="DataGridCell">
 
                                 <Setter Property="BorderThickness"
