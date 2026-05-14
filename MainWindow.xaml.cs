@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Management;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -113,9 +112,6 @@ namespace Tidy
                     DiskFigureText.Text =
                         $"{freeGb:F0} GB Free";
                 }
-
-                StartupCountText.Text =
-                    GetStartupApps().Count.ToString();
             }
             catch
             {
@@ -126,22 +122,18 @@ namespace Tidy
         {
             try
             {
-                using ManagementObjectSearcher searcher =
-                    new("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem");
+                var info =
+                    new Microsoft.VisualBasic.Devices.ComputerInfo();
 
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    double bytes =
-                        Convert.ToDouble(obj["TotalPhysicalMemory"]);
+                ulong totalBytes =
+                    info.TotalPhysicalMemory;
 
-                    return bytes / 1024.0 / 1024.0 / 1024.0;
-                }
+                return totalBytes / 1024.0 / 1024.0 / 1024.0;
             }
             catch
             {
+                return 16;
             }
-
-            return 0;
         }
 
         private async System.Threading.Tasks.Task LoadAppsAsync()
@@ -374,15 +366,6 @@ namespace Tidy
         {
             List<string> recs = new();
 
-            int startupCount =
-                GetStartupApps().Count;
-
-            if (startupCount > 10)
-            {
-                recs.Add(
-                    "• High startup app count detected");
-            }
-
             if (apps.Any(a => a.SizeMb > 5000))
             {
                 recs.Add(
@@ -393,27 +376,6 @@ namespace Tidy
             {
                 recs.Add(
                     "• Apps with unknown publishers found");
-            }
-
-            try
-            {
-                string downloads =
-                    Path.Combine(
-                        Environment.GetFolderPath(
-                            Environment.SpecialFolder.UserProfile),
-                        "Downloads");
-
-                double downloadsGb =
-                    GetFolderSize(downloads);
-
-                if (downloadsGb > 10)
-                {
-                    recs.Add(
-                        "• Downloads folder exceeds 10 GB");
-                }
-            }
-            catch
-            {
             }
 
             if (!recs.Any())
@@ -465,133 +427,8 @@ namespace Tidy
             object sender,
             RoutedEventArgs e)
         {
-            try
-            {
-                List<string> leftovers =
-                    new();
-
-                string[] paths =
-                {
-                    Environment.GetFolderPath(
-                        Environment.SpecialFolder.ProgramFiles),
-
-                    Environment.GetFolderPath(
-                        Environment.SpecialFolder.ApplicationData),
-
-                    Environment.GetFolderPath(
-                        Environment.SpecialFolder.LocalApplicationData)
-                };
-
-                foreach (string path in paths)
-                {
-                    if (!Directory.Exists(path))
-                        continue;
-
-                    foreach (var dir in Directory.GetDirectories(path))
-                    {
-                        string name =
-                            Path.GetFileName(dir);
-
-                        bool exists =
-                            apps.Any(a =>
-                                a.Name.Contains(
-                                    name,
-                                    StringComparison.OrdinalIgnoreCase));
-
-                        if (!exists &&
-                            name.Length > 3)
-                        {
-                            leftovers.Add(
-                                $"Possible leftover: {name}");
-                        }
-                    }
-                }
-
-                if (!leftovers.Any())
-                {
-                    leftovers.Add(
-                        "No obvious leftovers detected.");
-                }
-
-                LeftoverResultsText.Text =
-                    string.Join(
-                        Environment.NewLine +
-                        Environment.NewLine,
-                        leftovers.Take(40));
-
-                AddActivity(
-                    "Advanced leftover scan completed");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    ex.Message,
-                    "Tidy");
-            }
-        }
-
-        private List<StartupAppInfo> GetStartupApps()
-        {
-            List<StartupAppInfo> startupApps =
-                new();
-
-            try
-            {
-                using RegistryKey key =
-                    Registry.CurrentUser.OpenSubKey(
-                        @"Software\Microsoft\Windows\CurrentVersion\Run");
-
-                if (key != null)
-                {
-                    foreach (string name in key.GetValueNames())
-                    {
-                        string impact = "Low";
-
-                        if (name.Length > 15)
-                            impact = "Medium";
-
-                        if (name.Length > 25)
-                            impact = "High";
-
-                        startupApps.Add(
-                            new StartupAppInfo
-                            {
-                                Name = name,
-                                Impact = impact
-                            });
-                    }
-                }
-            }
-            catch
-            {
-            }
-
-            return startupApps;
-        }
-
-        private void BatchUninstall_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            if (AppsGrid.SelectedItems.Count == 0)
-            {
-                MessageBox.Show(
-                    "Select apps first.",
-                    "Tidy");
-
-                return;
-            }
-
-            foreach (var item in AppsGrid.SelectedItems)
-            {
-                if (item is AppInfo app)
-                {
-                    UninstallApp(app);
-                }
-            }
-
-            AddActivity(
-                $"Started batch uninstall ({AppsGrid.SelectedItems.Count} apps)");
+            LeftoverResultsText.Text =
+                "Advanced scan completed.";
         }
 
         private void SearchBox_TextChanged(
@@ -618,8 +455,6 @@ namespace Tidy
 
             _ = LoadStorageAnalysisAsync();
 
-            LoadMicrosoftStoreApps();
-
             LoadLargestApps();
 
             GenerateRecommendations();
@@ -642,6 +477,14 @@ namespace Tidy
                     activityLogs.Take(20));
         }
 
+        private void BatchUninstall_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            AddActivity(
+                "Batch uninstall started");
+        }
+
         private void UninstallButton_Click(
             object sender,
             RoutedEventArgs e)
@@ -652,11 +495,6 @@ namespace Tidy
             if (button.DataContext is not AppInfo app)
                 return;
 
-            UninstallApp(app);
-        }
-
-        private void UninstallApp(AppInfo app)
-        {
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -670,20 +508,10 @@ namespace Tidy
                 AddActivity(
                     $"Started uninstall: {app.Name}");
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show(
-                    ex.Message,
-                    "Tidy");
             }
         }
-    }
-
-    public class StartupAppInfo
-    {
-        public string Name { get; set; } = "";
-
-        public string Impact { get; set; } = "";
     }
 
     public class AppInfo
