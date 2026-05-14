@@ -32,6 +32,10 @@ namespace Tidy
                 StartSystemMonitor();
 
                 await LoadAppsAsync();
+
+                await LoadStorageAnalysisAsync();
+
+                LoadMicrosoftStoreApps();
             };
         }
 
@@ -101,23 +105,17 @@ namespace Tidy
                 CategorizeApps();
             });
 
-            var sortedApps = apps
+            AppsGrid.ItemsSource = apps
                 .OrderByDescending(a => a.SizeMb)
                 .ToList();
 
-            AppsGrid.ItemsSource = sortedApps;
-
             InstalledCountText.Text =
-                sortedApps.Count.ToString();
-
-            LoadRecommendations();
-
-            LoadDuplicateDetection();
+                apps.Count.ToString();
 
             LoadStartupApps();
 
             AddActivity(
-                $"Detected {sortedApps.Count} installed applications");
+                $"Detected {apps.Count} installed applications");
         }
 
         private void LoadRegistryApps(
@@ -202,39 +200,30 @@ namespace Tidy
                     app.Name.ToLower();
 
                 if (name.Contains("chrome") ||
-                    name.Contains("firefox") ||
                     name.Contains("edge") ||
-                    name.Contains("opera"))
+                    name.Contains("firefox"))
                 {
                     app.Category = "Browser";
                 }
+                else if (name.Contains("steam") ||
+                         name.Contains("epic"))
+                {
+                    app.Category = "Games";
+                }
                 else if (name.Contains("visual studio") ||
                          name.Contains("python") ||
-                         name.Contains("node") ||
                          name.Contains("git"))
                 {
                     app.Category = "Development";
                 }
-                else if (name.Contains("steam") ||
-                         name.Contains("epic") ||
-                         name.Contains("game"))
-                {
-                    app.Category = "Games";
-                }
-                else if (name.Contains("vlc") ||
-                         name.Contains("spotify") ||
-                         name.Contains("media"))
+                else if (name.Contains("spotify") ||
+                         name.Contains("vlc"))
                 {
                     app.Category = "Media";
                 }
                 else if (name.Contains("microsoft"))
                 {
                     app.Category = "Microsoft";
-                }
-                else if (name.Contains("antivirus") ||
-                         name.Contains("defender"))
-                {
-                    app.Category = "Security";
                 }
                 else
                 {
@@ -251,80 +240,173 @@ namespace Tidy
                 .ToList();
         }
 
-        private void LoadRecommendations()
+        private async Task LoadStorageAnalysisAsync()
         {
-            List<string> recommendations = new();
+            DownloadsSizeText.Text =
+                "Scanning...";
 
-            foreach (var app in apps
-                .OrderByDescending(a => a.SizeMb)
-                .Take(5))
+            DesktopSizeText.Text =
+                "Scanning...";
+
+            DocumentsSizeText.Text =
+                "Scanning...";
+
+            await Task.Run(() =>
             {
-                if (app.SizeMb > 2048)
+                try
                 {
-                    recommendations.Add(
-                        $"Large application detected: {app.Name}");
-                }
+                    string downloads =
+                        Path.Combine(
+                            Environment.GetFolderPath(
+                                Environment.SpecialFolder.UserProfile),
+                            "Downloads");
 
-                if (app.Publisher == "Unknown")
+                    string desktop =
+                        Environment.GetFolderPath(
+                            Environment.SpecialFolder.Desktop);
+
+                    string documents =
+                        Environment.GetFolderPath(
+                            Environment.SpecialFolder.MyDocuments);
+
+                    double downloadsGb =
+                        GetFolderSize(downloads);
+
+                    double desktopGb =
+                        GetFolderSize(desktop);
+
+                    double documentsGb =
+                        GetFolderSize(documents);
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        DownloadsSizeText.Text =
+                            $"{downloadsGb:F2} GB";
+
+                        DesktopSizeText.Text =
+                            $"{desktopGb:F2} GB";
+
+                        DocumentsSizeText.Text =
+                            $"{documentsGb:F2} GB";
+                    });
+                }
+                catch
                 {
-                    recommendations.Add(
-                        $"Unknown publisher: {app.Name}");
                 }
-
-                if (string.IsNullOrWhiteSpace(app.Command))
-                {
-                    recommendations.Add(
-                        $"Broken uninstaller: {app.Name}");
-                }
-            }
-
-            if (GetStartupApps().Count > 15)
-            {
-                recommendations.Add(
-                    "Too many startup applications enabled.");
-            }
-
-            if (!recommendations.Any())
-            {
-                recommendations.Add(
-                    "System looks healthy.");
-            }
-
-            RecommendationsText.Text =
-                string.Join(
-                    Environment.NewLine +
-                    Environment.NewLine,
-                    recommendations);
+            });
         }
 
-        private void LoadDuplicateDetection()
+        private double GetFolderSize(string path)
         {
-            List<string> duplicates = new();
-
-            var grouped =
-                apps.GroupBy(a =>
-                    a.Name.Split(' ')[0]);
-
-            foreach (var group in grouped)
+            try
             {
-                if (group.Count() > 1)
+                DirectoryInfo dir = new(path);
+
+                long size = dir
+                    .GetFiles("*", SearchOption.AllDirectories)
+                    .Sum(f => f.Length);
+
+                return size / 1024.0 / 1024.0 / 1024.0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private void LoadMicrosoftStoreApps()
+        {
+            try
+            {
+                List<string> storeApps = new();
+
+                string windowsApps =
+                    @"C:\Program Files\WindowsApps";
+
+                if (Directory.Exists(windowsApps))
                 {
-                    duplicates.Add(
-                        $"{group.Key} ({group.Count()} related apps)");
+                    foreach (var dir in Directory.GetDirectories(windowsApps))
+                    {
+                        string name =
+                            Path.GetFileName(dir);
+
+                        if (!string.IsNullOrWhiteSpace(name))
+                        {
+                            storeApps.Add(name);
+                        }
+                    }
                 }
-            }
 
-            if (!duplicates.Any())
+                if (!storeApps.Any())
+                {
+                    storeApps.Add(
+                        "No Microsoft Store apps detected.");
+                }
+
+                StoreAppsText.Text =
+                    string.Join(
+                        Environment.NewLine +
+                        Environment.NewLine,
+                        storeApps.Take(15));
+            }
+            catch
             {
-                duplicates.Add(
-                    "No duplicate groups detected.");
+                StoreAppsText.Text =
+                    "Administrator permission required.";
             }
+        }
 
-            DuplicateAppsText.Text =
-                string.Join(
-                    Environment.NewLine +
-                    Environment.NewLine,
-                    duplicates.Take(10));
+        private void ScanLeftovers_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            try
+            {
+                List<string> leftovers = new();
+
+                string programFiles =
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.ProgramFiles);
+
+                foreach (var dir in Directory.GetDirectories(programFiles))
+                {
+                    string name =
+                        Path.GetFileName(dir);
+
+                    bool exists =
+                        apps.Any(a =>
+                            a.Name.Contains(
+                                name,
+                                StringComparison.OrdinalIgnoreCase));
+
+                    if (!exists)
+                    {
+                        leftovers.Add(
+                            $"Possible leftover: {name}");
+                    }
+                }
+
+                if (!leftovers.Any())
+                {
+                    leftovers.Add(
+                        "No obvious leftovers detected.");
+                }
+
+                LeftoverResultsText.Text =
+                    string.Join(
+                        Environment.NewLine +
+                        Environment.NewLine,
+                        leftovers.Take(20));
+
+                AddActivity(
+                    "Scanned for leftover files");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Tidy");
+            }
         }
 
         private void LoadStartupApps()
@@ -417,56 +499,6 @@ namespace Tidy
             }
         }
 
-        private void CleanTemp_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            try
-            {
-                string tempPath =
-                    Path.GetTempPath();
-
-                int deletedFiles = 0;
-
-                long freedBytes = 0;
-
-                foreach (string file in Directory.GetFiles(
-                    tempPath,
-                    "*",
-                    SearchOption.AllDirectories))
-                {
-                    try
-                    {
-                        FileInfo info = new(file);
-
-                        freedBytes += info.Length;
-
-                        File.Delete(file);
-
-                        deletedFiles++;
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                double freedMb =
-                    freedBytes / 1024.0 / 1024.0;
-
-                TempCleanerResultText.Text =
-                    $"Removed {deletedFiles} files.\nFreed {freedMb:F2} MB.";
-
-                AddActivity(
-                    $"Cleaned temp files ({freedMb:F2} MB)");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    ex.Message,
-                    "Tidy");
-            }
-        }
-
         private void BatchUninstall_Click(
             object sender,
             RoutedEventArgs e)
@@ -513,6 +545,10 @@ namespace Tidy
             RoutedEventArgs e)
         {
             _ = LoadAppsAsync();
+
+            _ = LoadStorageAnalysisAsync();
+
+            LoadMicrosoftStoreApps();
 
             AddActivity("Dashboard refreshed");
         }
