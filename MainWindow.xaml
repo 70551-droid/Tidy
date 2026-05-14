@@ -13,17 +13,11 @@
 
         <!-- COLORS -->
 
-        <SolidColorBrush x:Key="PrimaryBrush"
-                         Color="#4F8CFF"/>
-
-        <SolidColorBrush x:Key="CardBrush"
-                         Color="#111827"/>
-
-        <SolidColorBrush x:Key="SidebarBrush"
-                         Color="#0B1220"/>
-
-        <SolidColorBrush x:Key="MutedBrush"
-                         Color="#94A3B8"/>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#4F8CFF"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#111827"/>
+        <SolidColorBrush x:Key="SidebarBrush" Color="#0B1220"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#94A3B8"/>
+        <SolidColorBrush x:Key="HoverBrush" Color="#172554"/>
 
         <!-- CARD STYLE -->
 
@@ -47,6 +41,35 @@
 
             <Setter Property="BorderThickness"
                     Value="1"/>
+
+            <Setter Property="RenderTransformOrigin"
+                    Value="0.5,0.5"/>
+
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1"
+                                    ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+
+            <Style.Triggers>
+
+                <Trigger Property="IsMouseOver"
+                         Value="True">
+
+                    <Setter Property="BorderBrush"
+                            Value="#2563EB"/>
+
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="1.02"
+                                            ScaleY="1.02"/>
+                        </Setter.Value>
+                    </Setter>
+
+                </Trigger>
+
+            </Style.Triggers>
 
         </Style>
 
@@ -124,6 +147,98 @@
                 </Setter.Value>
 
             </Setter>
+
+        </Style>
+
+        <!-- DATAGRID -->
+
+        <Style TargetType="DataGrid">
+
+            <Setter Property="Background"
+                    Value="#111827"/>
+
+            <Setter Property="Foreground"
+                    Value="White"/>
+
+            <Setter Property="BorderBrush"
+                    Value="#1E293B"/>
+
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+
+            <Setter Property="RowBackground"
+                    Value="#111827"/>
+
+            <Setter Property="AlternatingRowBackground"
+                    Value="#0F172A"/>
+
+            <Setter Property="GridLinesVisibility"
+                    Value="None"/>
+
+            <Setter Property="HeadersVisibility"
+                    Value="Column"/>
+
+        </Style>
+
+        <!-- DATAGRID ROW -->
+
+        <Style TargetType="DataGridRow">
+
+            <Setter Property="Foreground"
+                    Value="White"/>
+
+            <Setter Property="Background"
+                    Value="#111827"/>
+
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+
+            <Setter Property="Height"
+                    Value="42"/>
+
+            <Style.Triggers>
+
+                <Trigger Property="IsMouseOver"
+                         Value="True">
+
+                    <Setter Property="Background"
+                            Value="#172554"/>
+
+                </Trigger>
+
+                <Trigger Property="IsSelected"
+                         Value="True">
+
+                    <Setter Property="Background"
+                            Value="#2563EB"/>
+
+                </Trigger>
+
+            </Style.Triggers>
+
+        </Style>
+
+        <!-- DATAGRID COLUMN HEADER -->
+
+        <Style TargetType="DataGridColumnHeader">
+
+            <Setter Property="Background"
+                    Value="#0F172A"/>
+
+            <Setter Property="Foreground"
+                    Value="White"/>
+
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+
+            <Setter Property="BorderBrush"
+                    Value="#1E293B"/>
+
+            <Setter Property="BorderThickness"
+                    Value="0,0,0,1"/>
+
+            <Setter Property="Padding"
+                    Value="14,10"/>
 
         </Style>
 
@@ -233,7 +348,7 @@
                                        FontSize="18"
                                        Margin="0,0,14,0"/>
 
-                            <TextBlock Text="Cleanup"/>
+                                <TextBlock Text="Cleanup"/>
 
                         </StackPanel>
 
@@ -304,12 +419,12 @@
 
         </Border>
 
-        <!-- CONTENT AREA -->
+        <!-- CONTENT -->
 
         <Grid Grid.Column="1"
               Margin="28">
 
-            <!-- DASHBOARD PAGE -->
+            <!-- DASHBOARD -->
 
             <ScrollViewer x:Name="DashboardPage"
                           VerticalScrollBarVisibility="Auto">
@@ -320,60 +435,100 @@
                                FontSize="48"
                                FontWeight="Bold"
                                Foreground="White"
-                               Margin="0,0,0,24"/>
+                               Margin="0,0,0,28"/>
 
                     <UniformGrid Columns="4">
 
                         <Border Style="{StaticResource CardStyle}">
+
                             <StackPanel>
+
                                 <TextBlock Text="CPU"
                                            Foreground="{StaticResource MutedBrush}"/>
+
                                 <TextBlock x:Name="CpuUsageText"
                                            Text="0%"
                                            FontSize="42"
                                            FontWeight="Bold"
-                                           Foreground="White"/>
+                                           Foreground="White"
+                                           Margin="0,14,0,6"/>
+
+                                <ProgressBar Height="8"
+                                             Value="65"/>
+
                             </StackPanel>
+
                         </Border>
 
                         <Border Style="{StaticResource CardStyle}">
+
                             <StackPanel>
+
                                 <TextBlock Text="RAM"
                                            Foreground="{StaticResource MutedBrush}"/>
+
                                 <TextBlock x:Name="RamUsageText"
                                            Text="0%"
                                            FontSize="42"
                                            FontWeight="Bold"
-                                           Foreground="White"/>
+                                           Foreground="White"
+                                           Margin="0,14,0,0"/>
+
                                 <TextBlock x:Name="RamFigureText"
-                                           Foreground="White"/>
+                                           Foreground="#CBD5E1"
+                                           Margin="0,6,0,12"/>
+
+                                <ProgressBar Height="8"
+                                             Value="70"/>
+
                             </StackPanel>
+
                         </Border>
 
                         <Border Style="{StaticResource CardStyle}">
+
                             <StackPanel>
+
                                 <TextBlock Text="DISK"
                                            Foreground="{StaticResource MutedBrush}"/>
+
                                 <TextBlock x:Name="DiskUsageText"
                                            Text="0%"
                                            FontSize="42"
                                            FontWeight="Bold"
-                                           Foreground="White"/>
+                                           Foreground="White"
+                                           Margin="0,14,0,0"/>
+
                                 <TextBlock x:Name="DiskFigureText"
-                                           Foreground="White"/>
+                                           Foreground="#CBD5E1"
+                                           Margin="0,6,0,12"/>
+
+                                <ProgressBar Height="8"
+                                             Value="80"/>
+
                             </StackPanel>
+
                         </Border>
 
                         <Border Style="{StaticResource CardStyle}">
+
                             <StackPanel>
+
                                 <TextBlock Text="INSTALLED APPS"
                                            Foreground="{StaticResource MutedBrush}"/>
+
                                 <TextBlock x:Name="InstalledCountText"
                                            Text="0"
                                            FontSize="42"
                                            FontWeight="Bold"
-                                           Foreground="White"/>
+                                           Foreground="White"
+                                           Margin="0,14,0,6"/>
+
+                                <TextBlock Text="Applications Detected"
+                                           Foreground="#CBD5E1"/>
+
                             </StackPanel>
+
                         </Border>
 
                     </UniformGrid>
@@ -417,12 +572,7 @@
 
                         <DataGrid x:Name="AppsGrid"
                                   Grid.Row="1"
-                                  AutoGenerateColumns="False"
-                                  Background="#111827"
-                                  Foreground="White"
-                                  BorderThickness="0"
-                                  GridLinesVisibility="None"
-                                  HeadersVisibility="Column"/>
+                                  AutoGenerateColumns="False"/>
 
                     </Grid>
 
@@ -430,7 +580,7 @@
 
             </Grid>
 
-            <!-- CLEANUP PAGE -->
+            <!-- CLEANUP -->
 
             <Grid x:Name="CleanupPage"
                   Visibility="Collapsed">
@@ -446,20 +596,28 @@
 
                         <Button Content="Scan Leftovers"
                                 Width="220"
-                                Height="44"
+                                Height="46"
                                 Margin="0,24,0,24"
                                 Background="#16A34A"
                                 Foreground="White"
                                 BorderBrush="Transparent"
+                                FontWeight="SemiBold"
                                 Click="ScanLeftovers_Click"/>
 
-                        <ScrollViewer Height="600">
+                        <Border Background="#0F172A"
+                                CornerRadius="18"
+                                Padding="18">
 
-                            <TextBlock x:Name="LeftoverResultsText"
-                                       Foreground="White"
-                                       TextWrapping="Wrap"/>
+                            <ScrollViewer Height="500">
 
-                        </ScrollViewer>
+                                <TextBlock x:Name="LeftoverResultsText"
+                                           Foreground="White"
+                                           FontSize="15"
+                                           TextWrapping="Wrap"/>
+
+                            </ScrollViewer>
+
+                        </Border>
 
                     </StackPanel>
 
@@ -467,7 +625,7 @@
 
             </Grid>
 
-            <!-- STORAGE PAGE -->
+            <!-- STORAGE -->
 
             <Grid x:Name="StoragePage"
                   Visibility="Collapsed">
@@ -478,16 +636,19 @@
 
                         <StackPanel>
 
-                            <TextBlock Text="Downloads Size"
+                            <TextBlock Text="Downloads Folder"
                                        FontSize="28"
                                        FontWeight="Bold"
                                        Foreground="White"/>
 
                             <TextBlock x:Name="DownloadsSizeText"
-                                       FontSize="44"
+                                       FontSize="48"
                                        FontWeight="Bold"
                                        Foreground="#4F8CFF"
-                                       Margin="0,24,0,0"/>
+                                       Margin="0,24,0,18"/>
+
+                            <ProgressBar Height="10"
+                                         Value="60"/>
 
                         </StackPanel>
 
@@ -497,15 +658,17 @@
 
                         <StackPanel>
 
-                            <TextBlock Text="Largest Apps"
+                            <TextBlock Text="Largest Installed Apps"
                                        FontSize="28"
                                        FontWeight="Bold"
-                                       Foreground="White"/>
+                                       Foreground="White"
+                                       Margin="0,0,0,18"/>
 
                             <ScrollViewer Height="500">
 
                                 <TextBlock x:Name="LargestAppsText"
-                                           Foreground="White"
+                                           Foreground="#CBD5E1"
+                                           FontSize="15"
                                            TextWrapping="Wrap"/>
 
                             </ScrollViewer>
@@ -518,7 +681,7 @@
 
             </Grid>
 
-            <!-- ACTIVITY PAGE -->
+            <!-- ACTIVITY -->
 
             <Grid x:Name="ActivityPage"
                   Visibility="Collapsed">
@@ -527,19 +690,27 @@
 
                     <StackPanel>
 
-                        <TextBlock Text="Activity"
+                        <TextBlock Text="Activity Feed"
                                    FontSize="34"
                                    FontWeight="Bold"
-                                   Foreground="White"/>
+                                   Foreground="White"
+                                   Margin="0,0,0,20"/>
 
-                        <ScrollViewer Height="700"
-                                      Margin="0,24,0,0">
+                        <Border Background="#0F172A"
+                                CornerRadius="18"
+                                Padding="20">
 
-                            <TextBlock x:Name="ActivityText"
-                                       Foreground="White"
-                                       TextWrapping="Wrap"/>
+                            <ScrollViewer Height="620">
 
-                        </ScrollViewer>
+                                <TextBlock x:Name="ActivityText"
+                                           Foreground="#E2E8F0"
+                                           FontSize="15"
+                                           LineHeight="28"
+                                           TextWrapping="Wrap"/>
+
+                            </ScrollViewer>
+
+                        </Border>
 
                     </StackPanel>
 
