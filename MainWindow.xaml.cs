@@ -16,13 +16,154 @@ namespace Tidy
     {
         private DispatcherTimer monitorTimer;
 
+        private List<AppInfo> installedApps =
+            new List<AppInfo>();
+
         public MainWindow()
         {
             InitializeComponent();
 
             SetupMonitoring();
 
+            LoadInstalledApps();
+
             ShowDashboardPage();
+        }
+
+        // =========================
+        // APP MODEL
+        // =========================
+
+        public class AppInfo
+        {
+            public string Name { get; set; }
+
+            public string Publisher { get; set; }
+
+            public string Version { get; set; }
+        }
+
+        // =========================
+        // LOAD INSTALLED APPS
+        // =========================
+
+        private void LoadInstalledApps()
+        {
+            installedApps.Clear();
+
+            LoadAppsFromRegistry(
+                Registry.LocalMachine,
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
+
+            LoadAppsFromRegistry(
+                Registry.LocalMachine,
+                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall");
+
+            LoadAppsFromRegistry(
+                Registry.CurrentUser,
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
+
+            installedApps =
+                installedApps
+                .Where(a => !string.IsNullOrWhiteSpace(a.Name))
+                .OrderBy(a => a.Name)
+                .ToList();
+
+            AppsGrid.ItemsSource = installedApps;
+
+            InstalledCountText.Text =
+                installedApps.Count.ToString();
+
+            SetupDataGridColumns();
+
+            ActivityText.Text +=
+                $"[{DateTime.Now:T}] Loaded {installedApps.Count} installed apps\n";
+        }
+
+        private void LoadAppsFromRegistry(
+            RegistryKey root,
+            string path)
+        {
+            try
+            {
+                RegistryKey key = root.OpenSubKey(path);
+
+                if (key == null)
+                    return;
+
+                foreach (string subkeyName in key.GetSubKeyNames())
+                {
+                    try
+                    {
+                        RegistryKey subkey =
+                            key.OpenSubKey(subkeyName);
+
+                        string displayName =
+                            subkey?.GetValue("DisplayName")?.ToString();
+
+                        if (string.IsNullOrWhiteSpace(displayName))
+                            continue;
+
+                        bool alreadyExists =
+                            installedApps.Any(a =>
+                                a.Name == displayName);
+
+                        if (alreadyExists)
+                            continue;
+
+                        installedApps.Add(new AppInfo
+                        {
+                            Name = displayName,
+
+                            Publisher =
+                                subkey?.GetValue("Publisher")?.ToString()
+                                ?? "Unknown",
+
+                            Version =
+                                subkey?.GetValue("DisplayVersion")?.ToString()
+                                ?? "Unknown"
+                        });
+                    }
+                    catch
+                    {
+
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
+        private void SetupDataGridColumns()
+        {
+            if (AppsGrid.Columns.Count > 0)
+                return;
+
+            AppsGrid.Columns.Add(
+                new DataGridTextColumn
+                {
+                    Header = "Application",
+                    Binding = new System.Windows.Data.Binding("Name"),
+                    Width = new DataGridLength(2, DataGridLengthUnitType.Star)
+                });
+
+            AppsGrid.Columns.Add(
+                new DataGridTextColumn
+                {
+                    Header = "Publisher",
+                    Binding = new System.Windows.Data.Binding("Publisher"),
+                    Width = new DataGridLength(2, DataGridLengthUnitType.Star)
+                });
+
+            AppsGrid.Columns.Add(
+                new DataGridTextColumn
+                {
+                    Header = "Version",
+                    Binding = new System.Windows.Data.Binding("Version"),
+                    Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+                });
         }
 
         // =========================
@@ -33,9 +174,11 @@ namespace Tidy
         {
             monitorTimer = new DispatcherTimer();
 
-            monitorTimer.Interval = TimeSpan.FromSeconds(1);
+            monitorTimer.Interval =
+                TimeSpan.FromSeconds(1);
 
-            monitorTimer.Tick += MonitorTimer_Tick;
+            monitorTimer.Tick +=
+                MonitorTimer_Tick;
 
             monitorTimer.Start();
         }
@@ -43,7 +186,9 @@ namespace Tidy
         private void MonitorTimer_Tick(object sender, EventArgs e)
         {
             UpdateCpuUsage();
+
             UpdateRamUsage();
+
             UpdateDiskUsage();
         }
 
@@ -61,7 +206,8 @@ namespace Tidy
             try
             {
                 ObjectQuery query =
-                    new ObjectQuery("SELECT TotalVisibleMemorySize,FreePhysicalMemory FROM Win32_OperatingSystem");
+                    new ObjectQuery(
+                        "SELECT TotalVisibleMemorySize,FreePhysicalMemory FROM Win32_OperatingSystem");
 
                 ManagementObjectSearcher searcher =
                     new ManagementObjectSearcher(query);
@@ -69,20 +215,26 @@ namespace Tidy
                 foreach (ManagementObject obj in searcher.Get())
                 {
                     double total =
-                        Convert.ToDouble(obj["TotalVisibleMemorySize"]);
+                        Convert.ToDouble(
+                            obj["TotalVisibleMemorySize"]);
 
                     double free =
-                        Convert.ToDouble(obj["FreePhysicalMemory"]);
+                        Convert.ToDouble(
+                            obj["FreePhysicalMemory"]);
 
                     double used = total - free;
 
-                    double percent = (used / total) * 100;
+                    double percent =
+                        (used / total) * 100;
 
-                    double totalGb = total / 1024 / 1024;
+                    double totalGb =
+                        total / 1024 / 1024;
 
-                    double usedGb = used / 1024 / 1024;
+                    double usedGb =
+                        used / 1024 / 1024;
 
-                    RamUsageText.Text = $"{percent:0}%";
+                    RamUsageText.Text =
+                        $"{percent:0}%";
 
                     RamFigureText.Text =
                         $"{usedGb:0.0} GB / {totalGb:0.0} GB";
@@ -100,21 +252,27 @@ namespace Tidy
             {
                 DriveInfo drive =
                     DriveInfo.GetDrives()
-                    .FirstOrDefault(d => d.IsReady && d.Name == "C:\\");
+                    .FirstOrDefault(d =>
+                        d.IsReady &&
+                        d.Name == "C:\\");
 
                 if (drive != null)
                 {
                     double total =
-                        drive.TotalSize / 1024d / 1024d / 1024d;
+                        drive.TotalSize /
+                        1024d / 1024d / 1024d;
 
                     double free =
-                        drive.TotalFreeSpace / 1024d / 1024d / 1024d;
+                        drive.TotalFreeSpace /
+                        1024d / 1024d / 1024d;
 
                     double used = total - free;
 
-                    double percent = (used / total) * 100;
+                    double percent =
+                        (used / total) * 100;
 
-                    DiskUsageText.Text = $"{percent:0}%";
+                    DiskUsageText.Text =
+                        $"{percent:0}%";
 
                     DiskFigureText.Text =
                         $"{free:0.0} GB Free";
@@ -193,7 +351,7 @@ namespace Tidy
         }
 
         // =========================
-        // PAGE SHOW METHODS
+        // SHOW PAGES
         // =========================
 
         private void ShowDashboardPage()
@@ -286,24 +444,41 @@ namespace Tidy
         }
 
         // =========================
-        // EXISTING EVENTS
+        // SEARCH
+        // =========================
+
+        private void SearchBox_TextChanged(
+            object sender,
+            TextChangedEventArgs e)
+        {
+            string search =
+                SearchBox.Text
+                .ToLower();
+
+            var filtered =
+                installedApps
+                .Where(a =>
+                    a.Name.ToLower().Contains(search) ||
+                    a.Publisher.ToLower().Contains(search))
+                .ToList();
+
+            AppsGrid.ItemsSource =
+                filtered;
+        }
+
+        // =========================
+        // PLACEHOLDERS
         // =========================
 
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
+            LoadInstalledApps();
+
             UpdateCpuUsage();
 
             UpdateRamUsage();
 
             UpdateDiskUsage();
-
-            ActivityText.Text +=
-                $"[{DateTime.Now:T}] System refreshed\n";
-        }
-
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-
         }
 
         private void BatchUninstall_Click(object sender, RoutedEventArgs e)
