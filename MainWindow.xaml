@@ -11,13 +11,10 @@
 
     <Window.Resources>
 
-        <!-- COLORS -->
-
         <SolidColorBrush x:Key="PrimaryBrush" Color="#4F8CFF"/>
         <SolidColorBrush x:Key="CardBrush" Color="#111827"/>
         <SolidColorBrush x:Key="SidebarBrush" Color="#0B1220"/>
         <SolidColorBrush x:Key="MutedBrush" Color="#94A3B8"/>
-        <SolidColorBrush x:Key="HoverBrush" Color="#172554"/>
 
         <!-- CARD STYLE -->
 
@@ -41,35 +38,6 @@
 
             <Setter Property="BorderThickness"
                     Value="1"/>
-
-            <Setter Property="RenderTransformOrigin"
-                    Value="0.5,0.5"/>
-
-            <Setter Property="RenderTransform">
-                <Setter.Value>
-                    <ScaleTransform ScaleX="1"
-                                    ScaleY="1"/>
-                </Setter.Value>
-            </Setter>
-
-            <Style.Triggers>
-
-                <Trigger Property="IsMouseOver"
-                         Value="True">
-
-                    <Setter Property="BorderBrush"
-                            Value="#2563EB"/>
-
-                    <Setter Property="RenderTransform">
-                        <Setter.Value>
-                            <ScaleTransform ScaleX="1.02"
-                                            ScaleY="1.02"/>
-                        </Setter.Value>
-                    </Setter>
-
-                </Trigger>
-
-            </Style.Triggers>
 
         </Style>
 
@@ -175,12 +143,7 @@
             <Setter Property="GridLinesVisibility"
                     Value="None"/>
 
-            <Setter Property="HeadersVisibility"
-                    Value="Column"/>
-
         </Style>
-
-        <!-- DATAGRID ROW -->
 
         <Style TargetType="DataGridRow">
 
@@ -189,9 +152,6 @@
 
             <Setter Property="Background"
                     Value="#111827"/>
-
-            <Setter Property="BorderThickness"
-                    Value="0"/>
 
             <Setter Property="Height"
                     Value="42"/>
@@ -218,8 +178,6 @@
 
         </Style>
 
-        <!-- DATAGRID COLUMN HEADER -->
-
         <Style TargetType="DataGridColumnHeader">
 
             <Setter Property="Background"
@@ -230,12 +188,6 @@
 
             <Setter Property="FontWeight"
                     Value="Bold"/>
-
-            <Setter Property="BorderBrush"
-                    Value="#1E293B"/>
-
-            <Setter Property="BorderThickness"
-                    Value="0,0,0,1"/>
 
             <Setter Property="Padding"
                     Value="14,10"/>
@@ -253,169 +205,47 @@
 
         <!-- SIDEBAR -->
 
-        <Border Background="{StaticResource SidebarBrush}"
-                BorderBrush="#111827"
-                BorderThickness="0,0,1,0">
+        <Border Background="{StaticResource SidebarBrush}">
 
-            <Grid>
+            <StackPanel Margin="18">
 
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                <TextBlock Text="Tidy"
+                           FontSize="38"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           Margin="12,18,0,30"/>
 
-                <!-- LOGO -->
+                <Button x:Name="DashboardButton"
+                        Click="DashboardButton_Click"
+                        Style="{StaticResource SidebarButtonStyle}">
+                    <TextBlock Text="Dashboard"/>
+                </Button>
 
-                <StackPanel Margin="30">
+                <Button x:Name="AppsButton"
+                        Click="AppsButton_Click"
+                        Style="{StaticResource SidebarButtonStyle}">
+                    <TextBlock Text="Installed Apps"/>
+                </Button>
 
-                    <Border Width="82"
-                            Height="82"
-                            CornerRadius="24"
-                            Background="{StaticResource PrimaryBrush}">
+                <Button x:Name="CleanupButton"
+                        Click="CleanupButton_Click"
+                        Style="{StaticResource SidebarButtonStyle}">
+                    <TextBlock Text="Cleanup"/>
+                </Button>
 
-                        <TextBlock Text="T"
-                                   FontSize="42"
-                                   FontWeight="Bold"
-                                   Foreground="White"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
+                <Button x:Name="StorageButton"
+                        Click="StorageButton_Click"
+                        Style="{StaticResource SidebarButtonStyle}">
+                    <TextBlock Text="Storage"/>
+                </Button>
 
-                    </Border>
+                <Button x:Name="ActivityButton"
+                        Click="ActivityButton_Click"
+                        Style="{StaticResource SidebarButtonStyle}">
+                    <TextBlock Text="Activity"/>
+                </Button>
 
-                    <TextBlock Text="Tidy"
-                               FontSize="38"
-                               FontWeight="Bold"
-                               Foreground="White"
-                               Margin="0,18,0,0"/>
-
-                    <TextBlock Text="Modern Windows Intelligence"
-                               Foreground="{StaticResource MutedBrush}"
-                               FontSize="13"
-                               Margin="0,6,0,0"/>
-
-                </StackPanel>
-
-                <!-- NAV -->
-
-                <StackPanel Grid.Row="1"
-                            Margin="18,10">
-
-                    <Button x:Name="DashboardButton"
-                            Click="DashboardButton_Click"
-                            Style="{StaticResource SidebarButtonStyle}"
-                            Background="#172554"
-                            BorderBrush="#2563EB">
-
-                        <StackPanel Orientation="Horizontal">
-
-                            <TextBlock Text="&#xE80F;"
-                                       FontFamily="Segoe Fluent Icons"
-                                       FontSize="18"
-                                       Margin="0,0,14,0"/>
-
-                            <TextBlock Text="Dashboard"/>
-
-                        </StackPanel>
-
-                    </Button>
-
-                    <Button x:Name="AppsButton"
-                            Click="AppsButton_Click"
-                            Style="{StaticResource SidebarButtonStyle}">
-
-                        <StackPanel Orientation="Horizontal">
-
-                            <TextBlock Text="&#xE719;"
-                                       FontFamily="Segoe Fluent Icons"
-                                       FontSize="18"
-                                       Margin="0,0,14,0"/>
-
-                            <TextBlock Text="Installed Apps"/>
-
-                        </StackPanel>
-
-                    </Button>
-
-                    <Button x:Name="CleanupButton"
-                            Click="CleanupButton_Click"
-                            Style="{StaticResource SidebarButtonStyle}">
-
-                        <StackPanel Orientation="Horizontal">
-
-                            <TextBlock Text="&#xE74D;"
-                                       FontFamily="Segoe Fluent Icons"
-                                       FontSize="18"
-                                       Margin="0,0,14,0"/>
-
-                                <TextBlock Text="Cleanup"/>
-
-                        </StackPanel>
-
-                    </Button>
-
-                    <Button x:Name="StorageButton"
-                            Click="StorageButton_Click"
-                            Style="{StaticResource SidebarButtonStyle}">
-
-                        <StackPanel Orientation="Horizontal">
-
-                            <TextBlock Text="&#xE7F8;"
-                                       FontFamily="Segoe Fluent Icons"
-                                       FontSize="18"
-                                       Margin="0,0,14,0"/>
-
-                            <TextBlock Text="Storage"/>
-
-                        </StackPanel>
-
-                    </Button>
-
-                    <Button x:Name="ActivityButton"
-                            Click="ActivityButton_Click"
-                            Style="{StaticResource SidebarButtonStyle}">
-
-                        <StackPanel Orientation="Horizontal">
-
-                            <TextBlock Text="&#xE9D9;"
-                                       FontFamily="Segoe Fluent Icons"
-                                       FontSize="18"
-                                       Margin="0,0,14,0"/>
-
-                            <TextBlock Text="Activity"/>
-
-                        </StackPanel>
-
-                    </Button>
-
-                </StackPanel>
-
-                <!-- FOOTER -->
-
-                <Border Grid.Row="2"
-                        Margin="18"
-                        Background="#111827"
-                        CornerRadius="18"
-                        Padding="18"
-                        BorderBrush="#1F2937"
-                        BorderThickness="1">
-
-                    <StackPanel>
-
-                        <TextBlock Text="SYSTEM STATUS"
-                                   Foreground="{StaticResource MutedBrush}"
-                                   FontSize="11"/>
-
-                        <TextBlock Text="Intelligence Engine Active"
-                                   Foreground="White"
-                                   FontWeight="SemiBold"
-                                   Margin="0,8,0,0"/>
-
-                    </StackPanel>
-
-                </Border>
-
-            </Grid>
+            </StackPanel>
 
         </Border>
 
@@ -426,8 +256,7 @@
 
             <!-- DASHBOARD -->
 
-            <ScrollViewer x:Name="DashboardPage"
-                          VerticalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="DashboardPage">
 
                 <StackPanel>
 
@@ -444,17 +273,14 @@
                             <StackPanel>
 
                                 <TextBlock Text="CPU"
-                                           Foreground="{StaticResource MutedBrush}"/>
+                                           Foreground="#94A3B8"/>
 
                                 <TextBlock x:Name="CpuUsageText"
                                            Text="0%"
                                            FontSize="42"
                                            FontWeight="Bold"
                                            Foreground="White"
-                                           Margin="0,14,0,6"/>
-
-                                <ProgressBar Height="8"
-                                             Value="65"/>
+                                           Margin="0,12,0,0"/>
 
                             </StackPanel>
 
@@ -465,21 +291,18 @@
                             <StackPanel>
 
                                 <TextBlock Text="RAM"
-                                           Foreground="{StaticResource MutedBrush}"/>
+                                           Foreground="#94A3B8"/>
 
                                 <TextBlock x:Name="RamUsageText"
                                            Text="0%"
                                            FontSize="42"
                                            FontWeight="Bold"
                                            Foreground="White"
-                                           Margin="0,14,0,0"/>
+                                           Margin="0,12,0,0"/>
 
                                 <TextBlock x:Name="RamFigureText"
                                            Foreground="#CBD5E1"
-                                           Margin="0,6,0,12"/>
-
-                                <ProgressBar Height="8"
-                                             Value="70"/>
+                                           Margin="0,8,0,0"/>
 
                             </StackPanel>
 
@@ -490,21 +313,18 @@
                             <StackPanel>
 
                                 <TextBlock Text="DISK"
-                                           Foreground="{StaticResource MutedBrush}"/>
+                                           Foreground="#94A3B8"/>
 
                                 <TextBlock x:Name="DiskUsageText"
                                            Text="0%"
                                            FontSize="42"
                                            FontWeight="Bold"
                                            Foreground="White"
-                                           Margin="0,14,0,0"/>
+                                           Margin="0,12,0,0"/>
 
                                 <TextBlock x:Name="DiskFigureText"
                                            Foreground="#CBD5E1"
-                                           Margin="0,6,0,12"/>
-
-                                <ProgressBar Height="8"
-                                             Value="80"/>
+                                           Margin="0,8,0,0"/>
 
                             </StackPanel>
 
@@ -515,17 +335,14 @@
                             <StackPanel>
 
                                 <TextBlock Text="INSTALLED APPS"
-                                           Foreground="{StaticResource MutedBrush}"/>
+                                           Foreground="#94A3B8"/>
 
                                 <TextBlock x:Name="InstalledCountText"
                                            Text="0"
                                            FontSize="42"
                                            FontWeight="Bold"
                                            Foreground="White"
-                                           Margin="0,14,0,6"/>
-
-                                <TextBlock Text="Applications Detected"
-                                           Foreground="#CBD5E1"/>
+                                           Margin="0,12,0,0"/>
 
                             </StackPanel>
 
@@ -551,28 +368,46 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <DockPanel Margin="0,0,0,18">
+                        <StackPanel>
 
-                            <TextBlock Text="Installed Applications"
-                                       FontSize="32"
-                                       FontWeight="Bold"
-                                       Foreground="White"/>
+                            <DockPanel Margin="0,0,0,20">
 
-                            <TextBox x:Name="SearchBox"
-                                     Width="300"
-                                     Height="42"
-                                     DockPanel.Dock="Right"
-                                     Background="#0F172A"
-                                     Foreground="White"
-                                     BorderBrush="#1E293B"
-                                     Padding="12,0"
-                                     TextChanged="SearchBox_TextChanged"/>
+                                <TextBlock Text="Installed Applications"
+                                           FontSize="32"
+                                           FontWeight="Bold"
+                                           Foreground="White"/>
 
-                        </DockPanel>
+                                <StackPanel Orientation="Horizontal"
+                                            DockPanel.Dock="Right">
 
-                        <DataGrid x:Name="AppsGrid"
-                                  Grid.Row="1"
-                                  AutoGenerateColumns="False"/>
+                                    <TextBox x:Name="SearchBox"
+                                             Width="260"
+                                             Height="42"
+                                             Margin="0,0,14,0"
+                                             Background="#0F172A"
+                                             Foreground="White"
+                                             BorderBrush="#1E293B"
+                                             Padding="12,0"
+                                             TextChanged="SearchBox_TextChanged"/>
+
+                                    <Button Content="Uninstall Selected"
+                                            Width="180"
+                                            Height="42"
+                                            Background="#DC2626"
+                                            Foreground="White"
+                                            BorderBrush="Transparent"
+                                            FontWeight="SemiBold"
+                                            Cursor="Hand"
+                                            Click="UninstallSelected_Click"/>
+
+                                </StackPanel>
+
+                            </DockPanel>
+
+                            <DataGrid x:Name="AppsGrid"
+                                      AutoGenerateColumns="False"/>
+
+                        </StackPanel>
 
                     </Grid>
 
@@ -604,20 +439,10 @@
                                 FontWeight="SemiBold"
                                 Click="ScanLeftovers_Click"/>
 
-                        <Border Background="#0F172A"
-                                CornerRadius="18"
-                                Padding="18">
-
-                            <ScrollViewer Height="500">
-
-                                <TextBlock x:Name="LeftoverResultsText"
-                                           Foreground="White"
-                                           FontSize="15"
-                                           TextWrapping="Wrap"/>
-
-                            </ScrollViewer>
-
-                        </Border>
+                        <TextBlock x:Name="LeftoverResultsText"
+                                   Foreground="White"
+                                   FontSize="15"
+                                   TextWrapping="Wrap"/>
 
                     </StackPanel>
 
@@ -645,10 +470,7 @@
                                        FontSize="48"
                                        FontWeight="Bold"
                                        Foreground="#4F8CFF"
-                                       Margin="0,24,0,18"/>
-
-                            <ProgressBar Height="10"
-                                         Value="60"/>
+                                       Margin="0,24,0,0"/>
 
                         </StackPanel>
 
@@ -696,21 +518,15 @@
                                    Foreground="White"
                                    Margin="0,0,0,20"/>
 
-                        <Border Background="#0F172A"
-                                CornerRadius="18"
-                                Padding="20">
+                        <ScrollViewer Height="620">
 
-                            <ScrollViewer Height="620">
+                            <TextBlock x:Name="ActivityText"
+                                       Foreground="#E2E8F0"
+                                       FontSize="15"
+                                       LineHeight="28"
+                                       TextWrapping="Wrap"/>
 
-                                <TextBlock x:Name="ActivityText"
-                                           Foreground="#E2E8F0"
-                                           FontSize="15"
-                                           LineHeight="28"
-                                           TextWrapping="Wrap"/>
-
-                            </ScrollViewer>
-
-                        </Border>
+                        </ScrollViewer>
 
                     </StackPanel>
 
