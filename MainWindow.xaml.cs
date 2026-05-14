@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Management;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -17,11 +17,14 @@ namespace Tidy
 
         private readonly List<string> activityLogs = new();
 
+        private readonly DispatcherTimer monitorTimer =
+            new();
+
         private readonly PerformanceCounter cpuCounter =
             new("Processor", "% Processor Time", "_Total");
 
-        private readonly DispatcherTimer monitorTimer =
-            new();
+        private readonly PerformanceCounter ramCounter =
+            new("Memory", "Available MBytes");
 
         public MainWindow()
         {
@@ -36,6 +39,10 @@ namespace Tidy
                 await LoadStorageAnalysisAsync();
 
                 LoadMicrosoftStoreApps();
+
+                LoadLargestApps();
+
+                GenerateRecommendations();
             };
         }
 
@@ -56,23 +63,56 @@ namespace Tidy
         {
             try
             {
+                // CPU
                 CpuUsageText.Text =
                     $"{Math.Round(cpuCounter.NextValue())}%";
 
-                var memoryInfo =
-                    GC.GetGCMemoryInfo();
+                // RAM
+                double totalRamGb =
+                    GetTotalRamGb();
 
-                long total =
-                    memoryInfo.TotalAvailableMemoryBytes;
+                double availableMb =
+                    ramCounter.NextValue();
 
-                long used =
-                    GC.GetTotalMemory(false);
+                double availableGb =
+                    availableMb / 1024.0;
 
-                double usedPercent =
-                    ((double)used / total) * 100;
+                double usedGb =
+                    totalRamGb - availableGb;
+
+                double ramPercent =
+                    (usedGb / totalRamGb) * 100;
 
                 RamUsageText.Text =
-                    $"{usedPercent:F0}%";
+                    $"{ramPercent:F0}%";
+
+                RamFigureText.Text =
+                    $"{usedGb:F1} GB / {totalRamGb:F1} GB";
+
+                // DISK
+                DriveInfo drive =
+                    DriveInfo.GetDrives()
+                    .FirstOrDefault(d =>
+                        d.IsReady &&
+                        d.Name.StartsWith("C"));
+
+                if (drive != null)
+                {
+                    double totalGb =
+                        drive.TotalSize / 1024.0 / 1024.0 / 1024.0;
+
+                    double freeGb =
+                        drive.TotalFreeSpace / 1024.0 / 1024.0 / 1024.0;
+
+                    double usedPercent =
+                        ((totalGb - freeGb) / totalGb) * 100;
+
+                    DiskUsageText.Text =
+                        $"{usedPercent:F0}%";
+
+                    DiskFigureText.Text =
+                        $"{freeGb:F0} GB Free";
+                }
 
                 StartupCountText.Text =
                     GetStartupApps().Count.ToString();
@@ -82,9 +122,31 @@ namespace Tidy
             }
         }
 
-        private async Task LoadAppsAsync()
+        private double GetTotalRamGb()
         {
-            await Task.Run(() =>
+            try
+            {
+                using ManagementObjectSearcher searcher =
+                    new("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem");
+
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    double bytes =
+                        Convert.ToDouble(obj["TotalPhysicalMemory"]);
+
+                    return bytes / 1024.0 / 1024.0 / 1024.0;
+                }
+            }
+            catch
+            {
+            }
+
+            return 0;
+        }
+
+        private async System.Threading.Tasks.Task LoadAppsAsync()
+        {
+            await System.Threading.Tasks.Task.Run(() =>
             {
                 apps.Clear();
 
@@ -105,14 +167,11 @@ namespace Tidy
                 CategorizeApps();
             });
 
-            AppsGrid.ItemsSource = apps
-                .OrderByDescending(a => a.SizeMb)
-                .ToList();
+            AppsGrid.ItemsSource =
+                apps.OrderByDescending(a => a.SizeMb).ToList();
 
             InstalledCountText.Text =
                 apps.Count.ToString();
-
-            LoadStartupApps();
 
             AddActivity(
                 $"Detected {apps.Count} installed applications");
@@ -122,27 +181,29 @@ namespace Tidy
             RegistryKey root,
             string path)
         {
-            using var key = root.OpenSubKey(path);
+            using RegistryKey key =
+                root.OpenSubKey(path);
 
             if (key == null)
                 return;
 
-            foreach (var sub in key.GetSubKeyNames())
+            foreach (string sub in key.GetSubKeyNames())
             {
                 try
                 {
-                    using var sk = key.OpenSubKey(sub);
+                    using RegistryKey sk =
+                        key.OpenSubKey(sub);
 
                     if (sk == null)
                         continue;
 
-                    string? name =
+                    string name =
                         sk.GetValue("DisplayName") as string;
 
                     if (string.IsNullOrWhiteSpace(name))
                         continue;
 
-                    object? systemComponent =
+                    object systemComponent =
                         sk.GetValue("SystemComponent");
 
                     if (systemComponent != null &&
@@ -151,16 +212,16 @@ namespace Tidy
                         continue;
                     }
 
-                    string? uninstall =
+                    string uninstall =
                         sk.GetValue("UninstallString") as string;
 
                     if (string.IsNullOrWhiteSpace(uninstall))
                         continue;
 
-                    string? publisher =
+                    string publisher =
                         sk.GetValue("Publisher") as string;
 
-                    object? sizeObj =
+                    object sizeObj =
                         sk.GetValue("EstimatedSize");
 
                     double sizeMb = 0;
@@ -171,19 +232,22 @@ namespace Tidy
                         int.TryParse(sizeObj.ToString(), out int kb))
                     {
                         sizeMb = kb / 1024.0;
-                        sizeText = $"{sizeMb:F1} MB";
+
+                        sizeText =
+                            $"{sizeMb:F1} MB";
                     }
 
                     apps.Add(new AppInfo
                     {
                         Name = name.Trim(),
-                        Publisher = string.IsNullOrWhiteSpace(publisher)
+                        Publisher =
+                            string.IsNullOrWhiteSpace(publisher)
                             ? "Unknown"
                             : publisher.Trim(),
                         Size = sizeText,
                         SizeMb = sizeMb,
                         Command = uninstall,
-                        Category = "Other"
+                        Category = "Utility"
                     });
                 }
                 catch
@@ -211,8 +275,7 @@ namespace Tidy
                     app.Category = "Games";
                 }
                 else if (name.Contains("visual studio") ||
-                         name.Contains("python") ||
-                         name.Contains("git"))
+                         name.Contains("python"))
                 {
                     app.Category = "Development";
                 }
@@ -225,33 +288,23 @@ namespace Tidy
                 {
                     app.Category = "Microsoft";
                 }
-                else
-                {
-                    app.Category = "Utility";
-                }
             }
         }
 
         private void RemoveDuplicateApps()
         {
-            apps = apps
-                .GroupBy(a => a.Name.ToLower())
-                .Select(g => g.First())
-                .ToList();
+            apps =
+                apps.GroupBy(a => a.Name.ToLower())
+                    .Select(g => g.First())
+                    .ToList();
         }
 
-        private async Task LoadStorageAnalysisAsync()
+        private async System.Threading.Tasks.Task LoadStorageAnalysisAsync()
         {
             DownloadsSizeText.Text =
                 "Scanning...";
 
-            DesktopSizeText.Text =
-                "Scanning...";
-
-            DocumentsSizeText.Text =
-                "Scanning...";
-
-            await Task.Run(() =>
+            await System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
@@ -261,33 +314,13 @@ namespace Tidy
                                 Environment.SpecialFolder.UserProfile),
                             "Downloads");
 
-                    string desktop =
-                        Environment.GetFolderPath(
-                            Environment.SpecialFolder.Desktop);
-
-                    string documents =
-                        Environment.GetFolderPath(
-                            Environment.SpecialFolder.MyDocuments);
-
                     double downloadsGb =
                         GetFolderSize(downloads);
-
-                    double desktopGb =
-                        GetFolderSize(desktop);
-
-                    double documentsGb =
-                        GetFolderSize(documents);
 
                     Dispatcher.Invoke(() =>
                     {
                         DownloadsSizeText.Text =
                             $"{downloadsGb:F2} GB";
-
-                        DesktopSizeText.Text =
-                            $"{desktopGb:F2} GB";
-
-                        DocumentsSizeText.Text =
-                            $"{documentsGb:F2} GB";
                     });
                 }
                 catch
@@ -300,11 +333,12 @@ namespace Tidy
         {
             try
             {
-                DirectoryInfo dir = new(path);
+                DirectoryInfo dir =
+                    new(path);
 
-                long size = dir
-                    .GetFiles("*", SearchOption.AllDirectories)
-                    .Sum(f => f.Length);
+                long size =
+                    dir.GetFiles("*", SearchOption.AllDirectories)
+                       .Sum(f => f.Length);
 
                 return size / 1024.0 / 1024.0 / 1024.0;
             }
@@ -314,33 +348,104 @@ namespace Tidy
             }
         }
 
+        private void LoadLargestApps()
+        {
+            var largest =
+                apps.OrderByDescending(a => a.SizeMb)
+                    .Take(10)
+                    .ToList();
+
+            List<string> lines = new();
+
+            foreach (var app in largest)
+            {
+                lines.Add(
+                    $"{app.Name}  •  {app.Size}");
+            }
+
+            LargestAppsText.Text =
+                string.Join(
+                    Environment.NewLine +
+                    Environment.NewLine,
+                    lines);
+        }
+
+        private void GenerateRecommendations()
+        {
+            List<string> recs = new();
+
+            int startupCount =
+                GetStartupApps().Count;
+
+            if (startupCount > 10)
+            {
+                recs.Add(
+                    "• High startup app count detected");
+            }
+
+            if (apps.Any(a => a.SizeMb > 5000))
+            {
+                recs.Add(
+                    "• Very large applications detected");
+            }
+
+            if (apps.Any(a => a.Publisher == "Unknown"))
+            {
+                recs.Add(
+                    "• Apps with unknown publishers found");
+            }
+
+            try
+            {
+                string downloads =
+                    Path.Combine(
+                        Environment.GetFolderPath(
+                            Environment.SpecialFolder.UserProfile),
+                        "Downloads");
+
+                double downloadsGb =
+                    GetFolderSize(downloads);
+
+                if (downloadsGb > 10)
+                {
+                    recs.Add(
+                        "• Downloads folder exceeds 10 GB");
+                }
+            }
+            catch
+            {
+            }
+
+            if (!recs.Any())
+            {
+                recs.Add(
+                    "System health looks excellent.");
+            }
+
+            RecommendationsText.Text =
+                string.Join(
+                    Environment.NewLine +
+                    Environment.NewLine,
+                    recs);
+        }
+
         private void LoadMicrosoftStoreApps()
         {
             try
             {
-                List<string> storeApps = new();
+                List<string> storeApps =
+                    new();
 
-                string windowsApps =
+                string path =
                     @"C:\Program Files\WindowsApps";
 
-                if (Directory.Exists(windowsApps))
+                if (Directory.Exists(path))
                 {
-                    foreach (var dir in Directory.GetDirectories(windowsApps))
+                    foreach (var dir in Directory.GetDirectories(path))
                     {
-                        string name =
-                            Path.GetFileName(dir);
-
-                        if (!string.IsNullOrWhiteSpace(name))
-                        {
-                            storeApps.Add(name);
-                        }
+                        storeApps.Add(
+                            Path.GetFileName(dir));
                     }
-                }
-
-                if (!storeApps.Any())
-                {
-                    storeApps.Add(
-                        "No Microsoft Store apps detected.");
                 }
 
                 StoreAppsText.Text =
@@ -362,27 +467,43 @@ namespace Tidy
         {
             try
             {
-                List<string> leftovers = new();
+                List<string> leftovers =
+                    new();
 
-                string programFiles =
-                    Environment.GetFolderPath(
-                        Environment.SpecialFolder.ProgramFiles);
-
-                foreach (var dir in Directory.GetDirectories(programFiles))
+                string[] paths =
                 {
-                    string name =
-                        Path.GetFileName(dir);
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.ProgramFiles),
 
-                    bool exists =
-                        apps.Any(a =>
-                            a.Name.Contains(
-                                name,
-                                StringComparison.OrdinalIgnoreCase));
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.ApplicationData),
 
-                    if (!exists)
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.LocalApplicationData)
+                };
+
+                foreach (string path in paths)
+                {
+                    if (!Directory.Exists(path))
+                        continue;
+
+                    foreach (var dir in Directory.GetDirectories(path))
                     {
-                        leftovers.Add(
-                            $"Possible leftover: {name}");
+                        string name =
+                            Path.GetFileName(dir);
+
+                        bool exists =
+                            apps.Any(a =>
+                                a.Name.Contains(
+                                    name,
+                                    StringComparison.OrdinalIgnoreCase));
+
+                        if (!exists &&
+                            name.Length > 3)
+                        {
+                            leftovers.Add(
+                                $"Possible leftover: {name}");
+                        }
                     }
                 }
 
@@ -396,10 +517,10 @@ namespace Tidy
                     string.Join(
                         Environment.NewLine +
                         Environment.NewLine,
-                        leftovers.Take(20));
+                        leftovers.Take(40));
 
                 AddActivity(
-                    "Scanned for leftover files");
+                    "Advanced leftover scan completed");
             }
             catch (Exception ex)
             {
@@ -409,24 +530,14 @@ namespace Tidy
             }
         }
 
-        private void LoadStartupApps()
-        {
-            StartupListBox.Items.Clear();
-
-            foreach (var app in GetStartupApps())
-            {
-                StartupListBox.Items.Add(
-                    $"{app.Name} ({app.Impact})");
-            }
-        }
-
         private List<StartupAppInfo> GetStartupApps()
         {
-            List<StartupAppInfo> startupApps = new();
+            List<StartupAppInfo> startupApps =
+                new();
 
             try
             {
-                using var key =
+                using RegistryKey key =
                     Registry.CurrentUser.OpenSubKey(
                         @"Software\Microsoft\Windows\CurrentVersion\Run");
 
@@ -456,47 +567,6 @@ namespace Tidy
             }
 
             return startupApps;
-        }
-
-        private void DisableStartup_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            if (StartupListBox.SelectedItem == null)
-            {
-                MessageBox.Show(
-                    "Select a startup app first.",
-                    "Tidy");
-
-                return;
-            }
-
-            string selected =
-                StartupListBox.SelectedItem.ToString() ?? "";
-
-            string appName =
-                selected.Split('(')[0].Trim();
-
-            try
-            {
-                using var key =
-                    Registry.CurrentUser.OpenSubKey(
-                        @"Software\Microsoft\Windows\CurrentVersion\Run",
-                        true);
-
-                key?.DeleteValue(appName, false);
-
-                LoadStartupApps();
-
-                AddActivity(
-                    $"Disabled startup app: {appName}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    ex.Message,
-                    "Tidy");
-            }
         }
 
         private void BatchUninstall_Click(
@@ -531,8 +601,8 @@ namespace Tidy
             string query =
                 SearchBox.Text.ToLower();
 
-            AppsGrid.ItemsSource = apps
-                .Where(a =>
+            AppsGrid.ItemsSource =
+                apps.Where(a =>
                     a.Name.ToLower().Contains(query) ||
                     a.Publisher.ToLower().Contains(query) ||
                     a.Category.ToLower().Contains(query))
@@ -550,7 +620,12 @@ namespace Tidy
 
             LoadMicrosoftStoreApps();
 
-            AddActivity("Dashboard refreshed");
+            LoadLargestApps();
+
+            GenerateRecommendations();
+
+            AddActivity(
+                "Dashboard refreshed");
         }
 
         private void AddActivity(string message)
@@ -564,7 +639,7 @@ namespace Tidy
                 string.Join(
                     Environment.NewLine +
                     Environment.NewLine,
-                    activityLogs.Take(15));
+                    activityLogs.Take(20));
         }
 
         private void UninstallButton_Click(
