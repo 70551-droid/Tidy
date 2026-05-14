@@ -1,4 +1,3 @@
-using Microsoft.VisualBasic.Devices;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -56,16 +55,17 @@ namespace Tidy
                 CpuUsageText.Text =
                     $"{Math.Round(cpuCounter.NextValue())}%";
 
-                ComputerInfo info = new();
+                var memoryInfo =
+                    GC.GetGCMemoryInfo();
 
-                ulong total =
-                    info.TotalPhysicalMemory;
+                long total =
+                    memoryInfo.TotalAvailableMemoryBytes;
 
-                ulong available =
-                    info.AvailablePhysicalMemory;
+                long used =
+                    GC.GetTotalMemory(false);
 
                 double usedPercent =
-                    ((double)(total - available) / total) * 100;
+                    ((double)used / total) * 100;
 
                 RamUsageText.Text =
                     $"{usedPercent:F0}%";
@@ -84,17 +84,14 @@ namespace Tidy
             {
                 apps.Clear();
 
-                // 64-bit installs
                 LoadRegistryApps(
                     Registry.LocalMachine,
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
 
-                // 32-bit installs
                 LoadRegistryApps(
                     Registry.LocalMachine,
                     @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall");
 
-                // Current user
                 LoadRegistryApps(
                     Registry.CurrentUser,
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
