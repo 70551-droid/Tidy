@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Tidy"
-        Height="1080"
-        Width="1820"
+        Height="1180"
+        Width="1850"
         WindowStartupLocation="CenterScreen"
         Background="#0B1020">
 
@@ -27,7 +27,6 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- LOGO -->
                 <StackPanel Margin="24,28,24,24">
 
                     <Border Width="62"
@@ -57,7 +56,6 @@
 
                 </StackPanel>
 
-                <!-- NAV -->
                 <StackPanel Grid.Row="1"
                             Margin="16,10,16,10">
 
@@ -75,7 +73,6 @@
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Setter Property="HorizontalContentAlignment" Value="Left"/>
                             <Setter Property="Padding" Value="18,0,0,0"/>
-                            <Setter Property="Cursor" Value="Hand"/>
 
                             <Style.Triggers>
 
@@ -92,16 +89,15 @@
 
                     <Button Content="Dashboard"/>
                     <Button Content="Installed Apps"/>
+                    <Button Content="Microsoft Store Apps"/>
+                    <Button Content="Storage Analyzer"/>
                     <Button Content="Startup Apps"/>
-                    <Button Content="Storage Analysis"/>
-                    <Button Content="Duplicate Detection"/>
                     <Button Content="Recommendations"/>
-                    <Button Content="Activity"/>
+                    <Button Content="Cleanup Engine"/>
                     <Button Content="Settings"/>
 
                 </StackPanel>
 
-                <!-- FOOTER -->
                 <Border Grid.Row="2"
                         Margin="16"
                         Padding="16"
@@ -138,10 +134,10 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="220"/>
                     <RowDefinition Height="520"/>
-                    <RowDefinition Height="320"/>
-                    <RowDefinition Height="320"/>
+                    <RowDefinition Height="340"/>
+                    <RowDefinition Height="340"/>
+                    <RowDefinition Height="340"/>
                     <RowDefinition Height="300"/>
                 </Grid.RowDefinitions>
 
@@ -174,7 +170,7 @@
 
                 </DockPanel>
 
-                <!-- LIVE SYSTEM MONITOR -->
+                <!-- LIVE MONITOR -->
                 <Grid Grid.Row="1"
                       Margin="0,30,0,28">
 
@@ -185,7 +181,6 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- CPU -->
                     <Border Background="#11182D"
                             CornerRadius="18"
                             Padding="22"
@@ -194,8 +189,7 @@
                         <StackPanel>
 
                             <TextBlock Text="CPU USAGE"
-                                       Foreground="#8FA1CC"
-                                       FontSize="13"/>
+                                       Foreground="#8FA1CC"/>
 
                             <TextBlock x:Name="CpuUsageText"
                                        Text="0%"
@@ -208,7 +202,6 @@
 
                     </Border>
 
-                    <!-- RAM -->
                     <Border Grid.Column="1"
                             Background="#11182D"
                             CornerRadius="18"
@@ -218,8 +211,7 @@
                         <StackPanel>
 
                             <TextBlock Text="RAM USAGE"
-                                       Foreground="#8FA1CC"
-                                       FontSize="13"/>
+                                       Foreground="#8FA1CC"/>
 
                             <TextBlock x:Name="RamUsageText"
                                        Text="0%"
@@ -232,7 +224,6 @@
 
                     </Border>
 
-                    <!-- DISK -->
                     <Border Grid.Column="2"
                             Background="#11182D"
                             CornerRadius="18"
@@ -242,8 +233,7 @@
                         <StackPanel>
 
                             <TextBlock Text="INSTALLED APPS"
-                                       Foreground="#8FA1CC"
-                                       FontSize="13"/>
+                                       Foreground="#8FA1CC"/>
 
                             <TextBlock x:Name="InstalledCountText"
                                        Text="0"
@@ -256,7 +246,6 @@
 
                     </Border>
 
-                    <!-- STARTUP -->
                     <Border Grid.Column="3"
                             Background="#11182D"
                             CornerRadius="18"
@@ -265,8 +254,7 @@
                         <StackPanel>
 
                             <TextBlock Text="STARTUP APPS"
-                                       Foreground="#8FA1CC"
-                                       FontSize="13"/>
+                                       Foreground="#8FA1CC"/>
 
                             <TextBlock x:Name="StartupCountText"
                                        Text="0"
@@ -281,8 +269,8 @@
 
                 </Grid>
 
-                <!-- MAIN APPS -->
-                <Border Grid.Row="3"
+                <!-- APPS -->
+                <Border Grid.Row="2"
                         Background="#11182D"
                         CornerRadius="18"
                         Padding="18"
@@ -296,7 +284,6 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- TOP -->
                         <DockPanel Margin="0,0,0,18">
 
                             <TextBlock Text="Installed Applications"
@@ -315,14 +302,12 @@
 
                         </DockPanel>
 
-                        <!-- GRID -->
                         <DataGrid x:Name="AppsGrid"
                                   Grid.Row="1"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
                                   CanUserAddRows="False"
                                   SelectionMode="Extended"
-                                  SelectionUnit="FullRow"
                                   GridLinesVisibility="None"
                                   HeadersVisibility="Column"
                                   BorderThickness="0"
@@ -330,17 +315,6 @@
                                   Foreground="White"
                                   RowBackground="#11182D"
                                   AlternatingRowBackground="#182038">
-
-                            <DataGrid.Resources>
-
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="Background" Value="#182038"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                    <Setter Property="FontWeight" Value="Bold"/>
-                                    <Setter Property="Height" Value="42"/>
-                                </Style>
-
-                            </DataGrid.Resources>
 
                             <DataGrid.Columns>
 
@@ -383,7 +357,6 @@
 
                         </DataGrid>
 
-                        <!-- ACTION -->
                         <Button Grid.Row="2"
                                 Content="Batch Uninstall Selected"
                                 Width="240"
@@ -391,14 +364,93 @@
                                 Margin="0,18,0,0"
                                 Background="#B91C1C"
                                 Foreground="White"
-                                FontWeight="Bold"
                                 Click="BatchUninstall_Click"/>
 
                     </Grid>
 
                 </Border>
 
-                <!-- INTELLIGENCE -->
+                <!-- STORAGE -->
+                <Grid Grid.Row="3"
+                      Margin="0,0,0,24">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="#11182D"
+                            CornerRadius="18"
+                            Padding="18"
+                            Margin="0,0,12,0">
+
+                        <StackPanel>
+
+                            <TextBlock Text="Downloads"
+                                       FontSize="22"
+                                       FontWeight="Bold"
+                                       Foreground="White"/>
+
+                            <TextBlock x:Name="DownloadsSizeText"
+                                       FontSize="34"
+                                       FontWeight="Bold"
+                                       Foreground="#1B5CFF"
+                                       Margin="0,18,0,0"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Background="#11182D"
+                            CornerRadius="18"
+                            Padding="18"
+                            Margin="12,0">
+
+                        <StackPanel>
+
+                            <TextBlock Text="Desktop"
+                                       FontSize="22"
+                                       FontWeight="Bold"
+                                       Foreground="White"/>
+
+                            <TextBlock x:Name="DesktopSizeText"
+                                       FontSize="34"
+                                       FontWeight="Bold"
+                                       Foreground="#1B5CFF"
+                                       Margin="0,18,0,0"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            Background="#11182D"
+                            CornerRadius="18"
+                            Padding="18"
+                            Margin="12,0,0,0">
+
+                        <StackPanel>
+
+                            <TextBlock Text="Documents"
+                                       FontSize="22"
+                                       FontWeight="Bold"
+                                       Foreground="White"/>
+
+                            <TextBlock x:Name="DocumentsSizeText"
+                                       FontSize="34"
+                                       FontWeight="Bold"
+                                       Foreground="#1B5CFF"
+                                       Margin="0,18,0,0"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                </Grid>
+
+                <!-- MICROSOFT STORE + CLEANUP -->
                 <Grid Grid.Row="4"
                       Margin="0,0,0,24">
 
@@ -407,7 +459,6 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- RECOMMENDATIONS -->
                     <Border Background="#11182D"
                             CornerRadius="18"
                             Padding="18"
@@ -415,13 +466,13 @@
 
                         <StackPanel>
 
-                            <TextBlock Text="Smart Recommendations"
+                            <TextBlock Text="Microsoft Store Apps"
                                        FontSize="22"
                                        FontWeight="Bold"
                                        Foreground="White"
-                                       Margin="0,0,0,16"/>
+                                       Margin="0,0,0,18"/>
 
-                            <TextBlock x:Name="RecommendationsText"
+                            <TextBlock x:Name="StoreAppsText"
                                        Foreground="#D6DCEF"
                                        FontSize="15"
                                        TextWrapping="Wrap"/>
@@ -430,7 +481,6 @@
 
                     </Border>
 
-                    <!-- DUPLICATES -->
                     <Border Grid.Column="1"
                             Background="#11182D"
                             CornerRadius="18"
@@ -439,98 +489,21 @@
 
                         <StackPanel>
 
-                            <TextBlock Text="Duplicate Detection"
+                            <TextBlock Text="Leftover Cleanup"
                                        FontSize="22"
                                        FontWeight="Bold"
                                        Foreground="White"
-                                       Margin="0,0,0,16"/>
+                                       Margin="0,0,0,18"/>
 
-                            <TextBlock x:Name="DuplicateAppsText"
-                                       Foreground="#D6DCEF"
-                                       FontSize="15"
-                                       TextWrapping="Wrap"/>
-
-                        </StackPanel>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- STARTUP + CLEANUP -->
-                <Grid Grid.Row="5"
-                      Margin="0,0,0,24">
-
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- STARTUP -->
-                    <Border Background="#11182D"
-                            CornerRadius="18"
-                            Padding="18"
-                            Margin="0,0,12,0">
-
-                        <Grid>
-
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <TextBlock Text="Startup Applications"
-                                       FontSize="22"
-                                       FontWeight="Bold"
-                                       Foreground="White"/>
-
-                            <ListBox x:Name="StartupListBox"
-                                     Grid.Row="1"
-                                     Margin="0,18,0,18"
-                                     Background="#182038"
-                                     Foreground="White"
-                                     BorderThickness="0"/>
-
-                            <Button Grid.Row="2"
-                                    Content="Disable Selected Startup App"
-                                    Height="40"
-                                    Background="#1B5CFF"
-                                    Foreground="White"
-                                    Click="DisableStartup_Click"/>
-
-                        </Grid>
-
-                    </Border>
-
-                    <!-- TEMP -->
-                    <Border Grid.Column="1"
-                            Background="#11182D"
-                            CornerRadius="18"
-                            Padding="18"
-                            Margin="12,0,0,0">
-
-                        <StackPanel>
-
-                            <TextBlock Text="Temp Cleaner"
-                                       FontSize="22"
-                                       FontWeight="Bold"
-                                       Foreground="White"/>
-
-                            <TextBlock Text="Safely remove temporary Windows files."
-                                       Foreground="#9FB0D0"
-                                       Margin="0,12,0,18"/>
-
-                            <Button Content="Clean Temp Files"
+                            <Button Content="Scan Leftovers"
                                     Height="44"
                                     Background="#16A34A"
                                     Foreground="White"
-                                    FontWeight="Bold"
-                                    Click="CleanTemp_Click"/>
+                                    Click="ScanLeftovers_Click"/>
 
-                            <TextBlock x:Name="TempCleanerResultText"
+                            <TextBlock x:Name="LeftoverResultsText"
                                        Margin="0,20,0,0"
                                        Foreground="#D6DCEF"
-                                       FontSize="15"
                                        TextWrapping="Wrap"/>
 
                         </StackPanel>
@@ -538,6 +511,44 @@
                     </Border>
 
                 </Grid>
+
+                <!-- STARTUP -->
+                <Border Grid.Row="5"
+                        Background="#11182D"
+                        CornerRadius="18"
+                        Padding="18"
+                        Margin="0,0,0,24">
+
+                    <Grid>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Startup Applications"
+                                   FontSize="22"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+
+                        <ListBox x:Name="StartupListBox"
+                                 Grid.Row="1"
+                                 Margin="0,18,0,18"
+                                 Background="#182038"
+                                 Foreground="White"
+                                 BorderThickness="0"/>
+
+                        <Button Grid.Row="2"
+                                Content="Disable Selected Startup App"
+                                Height="40"
+                                Background="#1B5CFF"
+                                Foreground="White"
+                                Click="DisableStartup_Click"/>
+
+                    </Grid>
+
+                </Border>
 
                 <!-- ACTIVITY -->
                 <Border Grid.Row="6"
