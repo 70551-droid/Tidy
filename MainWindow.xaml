@@ -357,11 +357,205 @@
             <!-- APPS PAGE -->
 
             <Grid x:Name="AppsPage"
-                  Visibility="Collapsed">
+      Visibility="Collapsed">
 
-                <Border Style="{StaticResource CardStyle}">
+    <Border Style="{StaticResource CardStyle}">
 
-                    <Grid>
+        <Grid Margin="0">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- HEADER -->
+
+            <DockPanel Grid.Row="0"
+                       Margin="0,0,0,20">
+
+                <TextBlock Text="Installed Applications"
+                           FontSize="32"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           VerticalAlignment="Center"/>
+
+                <StackPanel Orientation="Horizontal"
+                            DockPanel.Dock="Right">
+
+                    <!-- SEARCH -->
+
+                    <TextBox x:Name="SearchBox"
+                             Width="260"
+                             Height="42"
+                             Margin="0,0,14,0"
+                             Background="#0F172A"
+                             Foreground="White"
+                             BorderBrush="#1E293B"
+                             BorderThickness="1"
+                             Padding="12,0"
+                             VerticalContentAlignment="Center"
+                             FontSize="14"
+                             TextChanged="SearchBox_TextChanged"/>
+
+                    <!-- UNINSTALL -->
+
+                    <Button Content="Uninstall Selected"
+                            Width="190"
+                            Height="42"
+                            Background="#DC2626"
+                            Foreground="White"
+                            BorderBrush="Transparent"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            Click="UninstallSelected_Click">
+
+                        <Button.Style>
+
+                            <Style TargetType="Button">
+
+                                <Setter Property="Template">
+
+                                    <Setter.Value>
+
+                                        <ControlTemplate TargetType="Button">
+
+                                            <Border x:Name="border"
+                                                    Background="{TemplateBinding Background}"
+                                                    CornerRadius="12">
+
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+
+                                            </Border>
+
+                                            <ControlTemplate.Triggers>
+
+                                                <Trigger Property="IsMouseOver"
+                                                         Value="True">
+
+                                                    <Setter TargetName="border"
+                                                            Property="Background"
+                                                            Value="#EF4444"/>
+
+                                                </Trigger>
+
+                                            </ControlTemplate.Triggers>
+
+                                        </ControlTemplate>
+
+                                    </Setter.Value>
+
+                                </Setter>
+
+                            </Style>
+
+                        </Button.Style>
+
+                    </Button>
+
+                </StackPanel>
+
+            </DockPanel>
+
+            <!-- DATAGRID -->
+
+            <Border Grid.Row="1"
+                    CornerRadius="18"
+                    BorderBrush="#1E293B"
+                    BorderThickness="1"
+                    Background="#111827"
+                    ClipToBounds="True">
+
+                <DataGrid x:Name="AppsGrid"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserResizeRows="False"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          HeadersVisibility="Column"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Background="#111827"
+                          Foreground="White"
+                          BorderThickness="0"
+                          RowHeight="42"
+                          ColumnHeaderHeight="44"
+                          VerticalAlignment="Stretch"
+                          HorizontalAlignment="Stretch">
+
+                    <DataGrid.Resources>
+
+                        <!-- COLUMN HEADER -->
+
+                        <Style TargetType="DataGridColumnHeader">
+
+                            <Setter Property="Background"
+                                    Value="#0F172A"/>
+
+                            <Setter Property="Foreground"
+                                    Value="White"/>
+
+                            <Setter Property="FontWeight"
+                                    Value="Bold"/>
+
+                            <Setter Property="FontSize"
+                                    Value="14"/>
+
+                            <Setter Property="Padding"
+                                    Value="14,10"/>
+
+                            <Setter Property="BorderThickness"
+                                    Value="0"/>
+
+                        </Style>
+
+                        <!-- ROWS -->
+
+                        <Style TargetType="DataGridRow">
+
+                            <Setter Property="Background"
+                                    Value="#111827"/>
+
+                            <Setter Property="Foreground"
+                                    Value="White"/>
+
+                            <Style.Triggers>
+
+                                <Trigger Property="IsMouseOver"
+                                         Value="True">
+
+                                    <Setter Property="Background"
+                                            Value="#172554"/>
+
+                                </Trigger>
+
+                                <Trigger Property="IsSelected"
+                                         Value="True">
+
+                                    <Setter Property="Background"
+                                            Value="#2563EB"/>
+
+                                </Trigger>
+
+                            </Style.Triggers>
+
+                        </Style>
+
+                    </DataGrid.Resources>
+
+                </DataGrid>
+
+            </Border>
+
+        </Grid>
+
+    </Border>
+
+</Grid>
 
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
