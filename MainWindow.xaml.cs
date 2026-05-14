@@ -32,13 +32,27 @@ namespace Tidy
             {
                 apps.Clear();
 
+                // 64-bit machine installs
                 LoadRegistryApps(
                     Registry.LocalMachine,
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
 
+                // 32-bit installs
+                LoadRegistryApps(
+                    Registry.LocalMachine,
+                    @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall");
+
+                // Current user installs
                 LoadRegistryApps(
                     Registry.CurrentUser,
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
+
+                // Current user WOW6432Node
+                LoadRegistryApps(
+                    Registry.CurrentUser,
+                    @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall");
+
+                RemoveDuplicateApps();
             });
 
             var sortedApps = apps
@@ -64,7 +78,7 @@ namespace Tidy
 
             LoadCleanupSuggestions();
 
-            AddActivity("System scan completed");
+            AddActivity($"Detected {sortedApps.Count} installed applications");
         }
 
         private void LoadRegistryApps(
@@ -82,23 +96,62 @@ namespace Tidy
                 {
                     using var sk = key.OpenSubKey(sub);
 
+                    if (sk == null)
+                        continue;
+
                     string? name =
-                        sk?.GetValue("DisplayName") as string;
+                        sk.GetValue("DisplayName") as string;
 
                     if (string.IsNullOrWhiteSpace(name))
                         continue;
 
+                    // Skip hidden/system entries
+                    object? systemComponent =
+                        sk.GetValue("SystemComponent");
+
+                    if (systemComponent != null &&
+                        systemComponent.ToString() == "1")
+                    {
+                        continue;
+                    }
+
+                    string? releaseType =
+                        sk.GetValue("ReleaseType") as string;
+
+                    if (!string.IsNullOrWhiteSpace(releaseType))
+                        continue;
+
+                    string? parentKeyName =
+                        sk.GetValue("ParentKeyName") as string;
+
+                    if (!string.IsNullOrWhiteSpace(parentKeyName))
+                        continue;
+
                     string? uninstall =
-                        sk?.GetValue("UninstallString") as string;
+                        sk.GetValue("UninstallString") as string;
+
+                    if (string.IsNullOrWhiteSpace(uninstall))
+                        continue;
+
+                    // Skip updates/hotfixes
+                    if (name.Contains("Security Update",
+                        StringComparison.OrdinalIgnoreCase) ||
+                        name.Contains("Update for",
+                        StringComparison.OrdinalIgnoreCase) ||
+                        name.Contains("Hotfix",
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
 
                     string? publisher =
-                        sk?.GetValue("Publisher") as string;
+                        sk.GetValue("Publisher") as string;
 
                     string? location =
-                        sk?.GetValue("InstallLocation") as string;
+                        sk.GetValue("InstallLocation") as string;
 
                     object? sizeObj =
-                        sk?.GetValue("EstimatedSize");
+                        sk.GetValue("EstimatedSize");
 
                     double sizeMb = 0;
 
@@ -113,8 +166,7 @@ namespace Tidy
 
                     string uninstallType = "EXE";
 
-                    if (!string.IsNullOrWhiteSpace(uninstall) &&
-                        uninstall.Contains("msiexec",
+                    if (uninstall.Contains("msiexec",
                         StringComparison.OrdinalIgnoreCase))
                     {
                         uninstallType = "MSI";
@@ -122,13 +174,14 @@ namespace Tidy
 
                     apps.Add(new AppInfo
                     {
-                        Name = name,
-                        Publisher = publisher ?? "Unknown",
+                        Name = name.Trim(),
+                        Publisher = string.IsNullOrWhiteSpace(publisher)
+                            ? "Unknown"
+                            : publisher.Trim(),
                         Size = sizeText,
                         SizeMb = sizeMb,
-                        Command = uninstall ?? "",
-                        InstallLocation =
-                            string.IsNullOrWhiteSpace(location)
+                        Command = uninstall,
+                        InstallLocation = string.IsNullOrWhiteSpace(location)
                             ? "Unknown"
                             : location,
                         UninstallType = uninstallType
@@ -140,18 +193,28 @@ namespace Tidy
             }
         }
 
+        private void RemoveDuplicateApps()
+        {
+            apps = apps
+                .GroupBy(a => a.Name.ToLower())
+                .Select(g =>
+                    g.OrderByDescending(a => a.SizeMb)
+                     .First())
+                .ToList();
+        }
+
         private void CalculateCleanupScore(double totalGb)
         {
             int score = 100;
 
-            if (apps.Count > 120)
-                score -= 20;
+            if (apps.Count > 150)
+                score -= 10;
 
-            if (totalGb > 150)
-                score -= 20;
+            if (totalGb > 200)
+                score -= 15;
 
-            if (apps.Count(a => a.SizeMb > 1024) > 10)
-                score -= 20;
+            if (apps.Count(a => a.SizeMb > 2048) > 8)
+                score -= 15;
 
             if (GetStartupApps().Count > 15)
                 score -= 15;
@@ -197,6 +260,12 @@ namespace Tidy
                 {
                     suggestions.Add(
                         $"Large app detected: {app.Name}");
+                }
+
+                if (app.Publisher == "Unknown")
+                {
+                    suggestions.Add(
+                        $"Unknown publisher: {app.Name}");
                 }
             }
 
@@ -466,59 +535,9 @@ namespace Tidy
                 return;
             }
 
-            DetectLeftovers(app);
-
             try
             {
                 string command = app.Command.Trim();
-
-                if (command.Contains("msiexec",
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "cmd.exe",
-                        Arguments = $"/c {command}",
-                        UseShellExecute = true,
-                        Verb = "runas"
-                    });
-
-                    AddActivity(
-                        $"Started MSI uninstall: {app.Name}");
-
-                    return;
-                }
-
-                if (command.StartsWith("\""))
-                {
-                    int secondQuote =
-                        command.IndexOf('\"', 1);
-
-                    if (secondQuote > 1)
-                    {
-                        string exe =
-                            command.Substring(
-                                1,
-                                secondQuote - 1);
-
-                        string args =
-                            command.Substring(
-                                secondQuote + 1);
-
-                        Process.Start(new ProcessStartInfo
-                        {
-                            FileName = exe,
-                            Arguments = args,
-                            UseShellExecute = true,
-                            Verb = "runas"
-                        });
-
-                        AddActivity(
-                            $"Started uninstall: {app.Name}");
-
-                        return;
-                    }
-                }
 
                 Process.Start(new ProcessStartInfo
                 {
@@ -539,21 +558,6 @@ namespace Tidy
 
                 AddActivity(
                     $"Uninstall failed: {app.Name}");
-            }
-        }
-
-        private void DetectLeftovers(AppInfo app)
-        {
-            try
-            {
-                if (Directory.Exists(app.InstallLocation))
-                {
-                    AddActivity(
-                        $"Possible leftover folder detected for {app.Name}");
-                }
-            }
-            catch
-            {
             }
         }
     }
