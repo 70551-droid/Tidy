@@ -31,16 +31,10 @@ namespace Tidy
 
             LoadStorageAnalysis();
 
-            GenerateRecommendations();
-
             ShowDashboardPage();
 
             AddActivity("Tidy initialized successfully");
         }
-
-        // =========================
-        // APP MODEL
-        // =========================
 
         public class AppInfo
         {
@@ -49,11 +43,9 @@ namespace Tidy
             public string Publisher { get; set; }
 
             public string Version { get; set; }
-        }
 
-        // =========================
-        // ACTIVITY
-        // =========================
+            public string UninstallString { get; set; }
+        }
 
         private void AddActivity(string message)
         {
@@ -61,10 +53,6 @@ namespace Tidy
                 $"[{DateTime.Now:T}] {message}\n\n" +
                 ActivityText.Text;
         }
-
-        // =========================
-        // LOAD APPS
-        // =========================
 
         private void LoadInstalledApps()
         {
@@ -127,6 +115,11 @@ namespace Tidy
                         if (string.IsNullOrWhiteSpace(displayName))
                             continue;
 
+                        if (ShouldSkipApp(displayName))
+                            continue;
+
+                        displayName = CleanAppName(displayName);
+
                         bool exists =
                             installedApps.Any(a =>
                                 a.Name == displayName);
@@ -144,7 +137,10 @@ namespace Tidy
 
                             Version =
                                 subkey?.GetValue("DisplayVersion")?.ToString()
-                                ?? "Unknown"
+                                ?? "Unknown",
+
+                            UninstallString =
+                                subkey?.GetValue("UninstallString")?.ToString()
                         });
                     }
                     catch
@@ -157,6 +153,38 @@ namespace Tidy
             {
 
             }
+        }
+
+        private bool ShouldSkipApp(string name)
+        {
+            string lower = name.ToLower();
+
+            string[] junk =
+            {
+                "security update",
+                "hotfix",
+                "runtime",
+                "redistributable",
+                "language pack",
+                "sdk",
+                "driver package",
+                "service pack",
+                "webview",
+                "update for",
+                "microsoft visual c++"
+            };
+
+            return junk.Any(j => lower.Contains(j));
+        }
+
+        private string CleanAppName(string name)
+        {
+            name = name.Replace("(x64)", "");
+            name = name.Replace("(x86)", "");
+            name = name.Replace("Microsoft ", "");
+            name = name.Trim();
+
+            return name;
         }
 
         private void SetupDataGridColumns()
@@ -198,10 +226,6 @@ namespace Tidy
                 });
         }
 
-        // =========================
-        // MONITORING
-        // =========================
-
         private void SetupMonitoring()
         {
             cpuCounter =
@@ -229,9 +253,7 @@ namespace Tidy
             EventArgs e)
         {
             UpdateCpuUsage();
-
             UpdateRamUsage();
-
             UpdateDiskUsage();
         }
 
@@ -317,8 +339,7 @@ namespace Tidy
                         drive.TotalFreeSpace /
                         1024d / 1024d / 1024d;
 
-                    double used =
-                        total - free;
+                    double used = total - free;
 
                     double percent =
                         (used / total) * 100;
@@ -336,10 +357,6 @@ namespace Tidy
             }
         }
 
-        // =========================
-        // STORAGE
-        // =========================
-
         private void LoadStorageAnalysis()
         {
             try
@@ -355,9 +372,6 @@ namespace Tidy
 
                 DownloadsSizeText.Text =
                     $"{downloadsSize / 1024d / 1024d / 1024d:0.00} GB";
-
-                AddActivity(
-                    "Storage analysis completed");
             }
             catch
             {
@@ -393,90 +407,13 @@ namespace Tidy
             }
         }
 
-        // =========================
-        // RECOMMENDATIONS
-        // =========================
-
-        private void GenerateRecommendations()
-        {
-            string recommendations = "";
-
-            if (installedApps.Count > 120)
-            {
-                recommendations +=
-                    "• Large number of installed apps detected\n\n";
-            }
-
-            try
-            {
-                string downloads =
-                    Path.Combine(
-                        Environment.GetFolderPath(
-                            Environment.SpecialFolder.UserProfile),
-                        "Downloads");
-
-                long size =
-                    GetFolderSize(downloads);
-
-                double gb =
-                    size / 1024d / 1024d / 1024d;
-
-                if (gb > 5)
-                {
-                    recommendations +=
-                        "• Downloads folder exceeds 5 GB\n\n";
-                }
-            }
-            catch
-            {
-
-            }
-
-            recommendations +=
-                "• Consider reviewing startup applications\n\n";
-
-            recommendations +=
-                "• Cleanup scan recommended weekly";
-
-            ActivityText.Text +=
-                "[SYSTEM] Recommendations generated\n\n";
-        }
-
-        // =========================
-        // NAVIGATION
-        // =========================
-
         private void ResetSidebarButtons()
         {
-            DashboardButton.Background =
-                Brushes.Transparent;
-
-            AppsButton.Background =
-                Brushes.Transparent;
-
-            CleanupButton.Background =
-                Brushes.Transparent;
-
-            StorageButton.Background =
-                Brushes.Transparent;
-
-            ActivityButton.Background =
-                Brushes.Transparent;
-
-            DashboardButton.BorderBrush =
-                Brushes.Transparent;
-
-            AppsButton.BorderBrush =
-                Brushes.Transparent;
-
-            CleanupButton.BorderBrush =
-                Brushes.Transparent;
-
-            StorageButton.BorderBrush =
-                Brushes.Transparent;
-
-            ActivityButton.BorderBrush =
-                Brushes.Transparent;
+            DashboardButton.Background = Brushes.Transparent;
+            AppsButton.Background = Brushes.Transparent;
+            CleanupButton.Background = Brushes.Transparent;
+            StorageButton.Background = Brushes.Transparent;
+            ActivityButton.Background = Brushes.Transparent;
         }
 
         private void HighlightButton(Button button)
@@ -484,144 +421,80 @@ namespace Tidy
             button.Background =
                 new SolidColorBrush(
                     (Color)ColorConverter.ConvertFromString("#172554"));
-
-            button.BorderBrush =
-                new SolidColorBrush(
-                    (Color)ColorConverter.ConvertFromString("#2563EB"));
         }
 
         private void HideAllPages()
         {
-            DashboardPage.Visibility =
-                Visibility.Collapsed;
-
-            AppsPage.Visibility =
-                Visibility.Collapsed;
-
-            CleanupPage.Visibility =
-                Visibility.Collapsed;
-
-            StoragePage.Visibility =
-                Visibility.Collapsed;
-
-            ActivityPage.Visibility =
-                Visibility.Collapsed;
+            DashboardPage.Visibility = Visibility.Collapsed;
+            AppsPage.Visibility = Visibility.Collapsed;
+            CleanupPage.Visibility = Visibility.Collapsed;
+            StoragePage.Visibility = Visibility.Collapsed;
+            ActivityPage.Visibility = Visibility.Collapsed;
         }
-
-        // =========================
-        // PAGE METHODS
-        // =========================
 
         private void ShowDashboardPage()
         {
             HideAllPages();
-
-            DashboardPage.Visibility =
-                Visibility.Visible;
-
+            DashboardPage.Visibility = Visibility.Visible;
             ResetSidebarButtons();
-
             HighlightButton(DashboardButton);
         }
 
         private void ShowAppsPage()
         {
             HideAllPages();
-
-            AppsPage.Visibility =
-                Visibility.Visible;
-
+            AppsPage.Visibility = Visibility.Visible;
             ResetSidebarButtons();
-
             HighlightButton(AppsButton);
         }
 
         private void ShowCleanupPage()
         {
             HideAllPages();
-
-            CleanupPage.Visibility =
-                Visibility.Visible;
-
+            CleanupPage.Visibility = Visibility.Visible;
             ResetSidebarButtons();
-
             HighlightButton(CleanupButton);
         }
 
         private void ShowStoragePage()
         {
             HideAllPages();
-
-            StoragePage.Visibility =
-                Visibility.Visible;
-
+            StoragePage.Visibility = Visibility.Visible;
             ResetSidebarButtons();
-
             HighlightButton(StorageButton);
         }
 
         private void ShowActivityPage()
         {
             HideAllPages();
-
-            ActivityPage.Visibility =
-                Visibility.Visible;
-
+            ActivityPage.Visibility = Visibility.Visible;
             ResetSidebarButtons();
-
             HighlightButton(ActivityButton);
         }
 
-        // =========================
-        // EVENTS
-        // =========================
-
-        private void DashboardButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void DashboardButton_Click(object sender, RoutedEventArgs e)
         {
             ShowDashboardPage();
         }
 
-        private void AppsButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void AppsButton_Click(object sender, RoutedEventArgs e)
         {
             ShowAppsPage();
         }
 
-        private void CleanupButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void CleanupButton_Click(object sender, RoutedEventArgs e)
         {
             ShowCleanupPage();
         }
 
-        private void StorageButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void StorageButton_Click(object sender, RoutedEventArgs e)
         {
             ShowStoragePage();
         }
 
-        private void ActivityButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void ActivityButton_Click(object sender, RoutedEventArgs e)
         {
             ShowActivityPage();
-        }
-
-        private void Refresh_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            LoadInstalledApps();
-
-            LoadStorageAnalysis();
-
-            GenerateRecommendations();
-
-            AddActivity("System refreshed");
         }
 
         private void SearchBox_TextChanged(
@@ -642,11 +515,66 @@ namespace Tidy
                 filtered;
         }
 
-        private void BatchUninstall_Click(
+        private void UninstallSelected_Click(
             object sender,
             RoutedEventArgs e)
         {
+            AppInfo selected =
+                AppsGrid.SelectedItem as AppInfo;
 
+            if (selected == null)
+            {
+                MessageBox.Show(
+                    "Please select an application first.",
+                    "Tidy",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                return;
+            }
+
+            MessageBoxResult result =
+                MessageBox.Show(
+                    $"Uninstall {selected.Name}?",
+                    "Confirm Uninstall",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(selected.UninstallString))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c {selected.UninstallString}",
+                        UseShellExecute = true,
+                        Verb = "runas"
+                    });
+
+                    AddActivity(
+                        $"Started uninstall for {selected.Name}");
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "No uninstall command available.",
+                        "Tidy",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Uninstall Failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
         private void ScanLeftovers_Click(
