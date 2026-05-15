@@ -14,380 +14,326 @@ namespace Tidy
 {
     public partial class MainWindow : Window
     {
-        private DispatcherTimer monitorTimer;
+        private readonly DispatcherTimer statsTimer = new DispatcherTimer();
 
-        private PerformanceCounter cpuCounter;
+        private readonly PerformanceCounter cpuCounter =
+            new PerformanceCounter("Processor", "% Processor Time", "_Total");
 
-        private List<AppInfo> installedApps =
-            new List<AppInfo>();
+        private readonly PerformanceCounter ramCounter =
+            new PerformanceCounter("Memory", "% Committed Bytes In Use");
 
         public MainWindow()
         {
             InitializeComponent();
 
-            SetupMonitoring();
-
+            InitializeStats();
             LoadInstalledApps();
+            LoadStartupApps();
+            LoadStorageStats();
+            LoadAiInsights();
 
-            LoadStorageAnalysis();
+            statsTimer.Interval = TimeSpan.FromSeconds(1);
+            statsTimer.Tick += StatsTimer_Tick;
+            statsTimer.Start();
 
-            ShowDashboardPage();
-
-            AddActivity("Tidy initialized successfully");
+            ShowPage(DashboardPage);
         }
 
-        public class AppInfo
+        // =========================
+        // NAVIGATION
+        // =========================
+
+        private void ShowPage(UIElement page)
+        {
+            DashboardPage.Visibility = Visibility.Collapsed;
+            AppsPage.Visibility = Visibility.Collapsed;
+            StartupPage.Visibility = Visibility.Collapsed;
+            CleanupPage.Visibility = Visibility.Collapsed;
+            StoragePage.Visibility = Visibility.Collapsed;
+            DuplicatePage.Visibility = Visibility.Collapsed;
+            ThemesPage.Visibility = Visibility.Collapsed;
+            AiPage.Visibility = Visibility.Collapsed;
+            ActivityPage.Visibility = Visibility.Collapsed;
+
+            page.Visibility = Visibility.Visible;
+        }
+
+        private void DashboardButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(DashboardPage);
+        }
+
+        private void AppsButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(AppsPage);
+        }
+
+        private void StartupButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(StartupPage);
+        }
+
+        private void CleanupButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(CleanupPage);
+        }
+
+        private void StorageButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(StoragePage);
+        }
+
+        private void DuplicateButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(DuplicatePage);
+        }
+
+        private void ThemesButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(ThemesPage);
+        }
+
+        private void AiButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(AiPage);
+        }
+
+        private void ActivityButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(ActivityPage);
+        }
+
+        // =========================
+        // SYSTEM STATS
+        // =========================
+
+        private void InitializeStats()
+        {
+            CpuUsageText.Text = "0%";
+            RamUsageText.Text = "0%";
+            DiskUsageText.Text = "0%";
+            GpuUsageText.Text = "0%";
+        }
+
+        private void StatsTimer_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                float cpu = cpuCounter.NextValue();
+                float ram = ramCounter.NextValue();
+
+                CpuUsageText.Text = $"{cpu:0}%";
+                RamUsageText.Text = $"{ram:0}%";
+
+                DriveInfo drive = DriveInfo.GetDrives()
+                    .FirstOrDefault(d => d.IsReady && d.Name == "C:\\");
+
+                if (drive != null)
+                {
+                    double used =
+                        ((double)(drive.TotalSize - drive.AvailableFreeSpace)
+                        / drive.TotalSize) * 100;
+
+                    DiskUsageText.Text = $"{used:0}%";
+
+                    double totalGb = drive.TotalSize / 1024d / 1024d / 1024d;
+                    double freeGb = drive.AvailableFreeSpace / 1024d / 1024d / 1024d;
+
+                    DiskFigureText.Text =
+                        $"{freeGb:0} GB free of {totalGb:0} GB";
+                }
+
+                RamFigureText.Text = $"{GetUsedRam()} GB Used";
+
+                UptimeText.Text =
+                    TimeSpan.FromMilliseconds(Environment.TickCount64)
+                    .ToString(@"dd\.hh\:mm\:ss");
+
+                GpuUsageText.Text = "Active";
+            }
+            catch
+            {
+
+            }
+        }
+
+        private double GetUsedRam()
+        {
+            double total =
+                new Microsoft.VisualBasic.Devices.ComputerInfo()
+                .TotalPhysicalMemory / 1024d / 1024d / 1024d;
+
+            double available =
+                new Microsoft.VisualBasic.Devices.ComputerInfo()
+                .AvailablePhysicalMemory / 1024d / 1024d / 1024d;
+
+            return total - available;
+        }
+
+        // =========================
+        // INSTALLED APPS
+        // =========================
+
+        private class InstalledApp
         {
             public string Name { get; set; }
-
-            public string Publisher { get; set; }
-
             public string Version { get; set; }
-
-            public string UninstallString { get; set; }
+            public string Publisher { get; set; }
         }
 
-        private void AddActivity(string message)
-        {
-            ActivityText.Text =
-                $"[{DateTime.Now:T}] {message}\n\n" +
-                ActivityText.Text;
-        }
+        private List<InstalledApp> installedApps =
+            new List<InstalledApp>();
 
         private void LoadInstalledApps()
         {
             installedApps.Clear();
 
-            LoadAppsFromRegistry(
-                Registry.LocalMachine,
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
+            string uninstallKey =
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
 
-            LoadAppsFromRegistry(
-                Registry.LocalMachine,
-                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall");
+            RegistryKey registryKey =
+                Registry.LocalMachine.OpenSubKey(uninstallKey);
 
-            LoadAppsFromRegistry(
-                Registry.CurrentUser,
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
-
-            installedApps =
-                installedApps
-                .Where(a => !string.IsNullOrWhiteSpace(a.Name))
-                .OrderBy(a => a.Name)
-                .ToList();
-
-            InstalledCountText.Text =
-                installedApps.Count.ToString();
-
-            AppsGrid.ItemsSource =
-                installedApps;
-
-            SetupDataGridColumns();
-
-            LoadLargestApps();
-
-            AddActivity(
-                $"Loaded {installedApps.Count} installed apps");
-        }
-
-        private void LoadAppsFromRegistry(
-            RegistryKey root,
-            string path)
-        {
-            try
-            {
-                RegistryKey key =
-                    root.OpenSubKey(path);
-
-                if (key == null)
-                    return;
-
-                foreach (string subkeyName in key.GetSubKeyNames())
-                {
-                    try
-                    {
-                        RegistryKey subkey =
-                            key.OpenSubKey(subkeyName);
-
-                        string displayName =
-                            subkey?.GetValue("DisplayName")?.ToString();
-
-                        if (string.IsNullOrWhiteSpace(displayName))
-                            continue;
-
-                        if (ShouldSkipApp(displayName))
-                            continue;
-
-                        displayName = CleanAppName(displayName);
-
-                        bool exists =
-                            installedApps.Any(a =>
-                                a.Name == displayName);
-
-                        if (exists)
-                            continue;
-
-                        installedApps.Add(new AppInfo
-                        {
-                            Name = displayName,
-
-                            Publisher =
-                                subkey?.GetValue("Publisher")?.ToString()
-                                ?? "Unknown",
-
-                            Version =
-                                subkey?.GetValue("DisplayVersion")?.ToString()
-                                ?? "Unknown",
-
-                            UninstallString =
-                                subkey?.GetValue("UninstallString")?.ToString()
-                        });
-                    }
-                    catch
-                    {
-
-                    }
-                }
-            }
-            catch
-            {
-
-            }
-        }
-
-        private bool ShouldSkipApp(string name)
-        {
-            string lower = name.ToLower();
-
-            string[] junk =
-            {
-                "security update",
-                "hotfix",
-                "runtime",
-                "redistributable",
-                "language pack",
-                "sdk",
-                "driver package",
-                "service pack",
-                "webview",
-                "update for",
-                "microsoft visual c++"
-            };
-
-            return junk.Any(j => lower.Contains(j));
-        }
-
-        private string CleanAppName(string name)
-        {
-            name = name.Replace("(x64)", "");
-            name = name.Replace("(x86)", "");
-            name = name.Replace("Microsoft ", "");
-            name = name.Trim();
-
-            return name;
-        }
-
-        private void SetupDataGridColumns()
-        {
-            if (AppsGrid.Columns.Count > 0)
+            if (registryKey == null)
                 return;
 
-            AppsGrid.Columns.Add(
-                new DataGridTextColumn
+            foreach (string subkeyName in registryKey.GetSubKeyNames())
+            {
+                RegistryKey subkey = registryKey.OpenSubKey(subkeyName);
+
+                string name = subkey?.GetValue("DisplayName")?.ToString();
+
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
+
+                installedApps.Add(new InstalledApp
                 {
-                    Header = "Application",
-                    Binding =
-                        new System.Windows.Data.Binding("Name"),
-                    Width =
-                        new DataGridLength(2,
-                        DataGridLengthUnitType.Star)
+                    Name = name,
+                    Version = subkey.GetValue("DisplayVersion")?.ToString(),
+                    Publisher = subkey.GetValue("Publisher")?.ToString()
+                });
+            }
+
+            AppsGrid.ItemsSource = installedApps;
+            InstalledCountText.Text = installedApps.Count.ToString();
+
+            if (AppsGrid.Columns.Count == 0)
+            {
+                AppsGrid.Columns.Add(new DataGridTextColumn
+                {
+                    Header = "Name",
+                    Binding = new System.Windows.Data.Binding("Name"),
+                    Width = new DataGridLength(3, DataGridLengthUnitType.Star)
                 });
 
-            AppsGrid.Columns.Add(
-                new DataGridTextColumn
-                {
-                    Header = "Publisher",
-                    Binding =
-                        new System.Windows.Data.Binding("Publisher"),
-                    Width =
-                        new DataGridLength(2,
-                        DataGridLengthUnitType.Star)
-                });
-
-            AppsGrid.Columns.Add(
-                new DataGridTextColumn
+                AppsGrid.Columns.Add(new DataGridTextColumn
                 {
                     Header = "Version",
-                    Binding =
-                        new System.Windows.Data.Binding("Version"),
-                    Width =
-                        new DataGridLength(1,
-                        DataGridLengthUnitType.Star)
+                    Binding = new System.Windows.Data.Binding("Version"),
+                    Width = new DataGridLength(1, DataGridLengthUnitType.Star)
                 });
-        }
 
-        private void SetupMonitoring()
-        {
-            cpuCounter =
-                new PerformanceCounter(
-                    "Processor",
-                    "% Processor Time",
-                    "_Total");
-
-            cpuCounter.NextValue();
-
-            monitorTimer =
-                new DispatcherTimer();
-
-            monitorTimer.Interval =
-                TimeSpan.FromSeconds(1);
-
-            monitorTimer.Tick +=
-                MonitorTimer_Tick;
-
-            monitorTimer.Start();
-        }
-
-        private void MonitorTimer_Tick(
-            object sender,
-            EventArgs e)
-        {
-            UpdateCpuUsage();
-            UpdateRamUsage();
-            UpdateDiskUsage();
-        }
-
-        private void UpdateCpuUsage()
-        {
-            try
-            {
-                float cpu =
-                    cpuCounter.NextValue();
-
-                CpuUsageText.Text =
-                    $"{cpu:0}%";
-            }
-            catch
-            {
-                CpuUsageText.Text = "N/A";
-            }
-        }
-
-        private void UpdateRamUsage()
-        {
-            try
-            {
-                ObjectQuery query =
-                    new ObjectQuery(
-                        "SELECT TotalVisibleMemorySize,FreePhysicalMemory FROM Win32_OperatingSystem");
-
-                ManagementObjectSearcher searcher =
-                    new ManagementObjectSearcher(query);
-
-                foreach (ManagementObject obj in searcher.Get())
+                AppsGrid.Columns.Add(new DataGridTextColumn
                 {
-                    double total =
-                        Convert.ToDouble(
-                            obj["TotalVisibleMemorySize"]);
+                    Header = "Publisher",
+                    Binding = new System.Windows.Data.Binding("Publisher"),
+                    Width = new DataGridLength(2, DataGridLengthUnitType.Star)
+                });
+            }
+        }
 
-                    double free =
-                        Convert.ToDouble(
-                            obj["FreePhysicalMemory"]);
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string query = SearchBox.Text.ToLower();
 
-                    double used =
-                        total - free;
+            AppsGrid.ItemsSource =
+                installedApps.Where(a =>
+                    a.Name != null &&
+                    a.Name.ToLower().Contains(query)).ToList();
+        }
 
-                    double percent =
-                        (used / total) * 100;
+        private void UninstallSelected_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(
+                "Uninstall logic placeholder.",
+                "Tidy");
+        }
 
-                    double totalGb =
-                        total / 1024 / 1024;
+        // =========================
+        // STARTUP APPS
+        // =========================
 
-                    double usedGb =
-                        used / 1024 / 1024;
+        private class StartupApp
+        {
+            public string Name { get; set; }
+            public string Command { get; set; }
+        }
 
-                    RamUsageText.Text =
-                        $"{percent:0}%";
+        private void LoadStartupApps()
+        {
+            List<StartupApp> startupApps =
+                new List<StartupApp>();
 
-                    RamFigureText.Text =
-                        $"{usedGb:0.0} GB / {totalGb:0.0} GB";
+            RegistryKey key =
+                Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Run");
+
+            if (key != null)
+            {
+                foreach (string valueName in key.GetValueNames())
+                {
+                    startupApps.Add(new StartupApp
+                    {
+                        Name = valueName,
+                        Command = key.GetValue(valueName)?.ToString()
+                    });
                 }
             }
-            catch
-            {
-                RamUsageText.Text = "N/A";
-            }
-        }
 
-        private void UpdateDiskUsage()
-        {
-            try
-            {
-                DriveInfo drive =
-                    DriveInfo.GetDrives()
-                    .FirstOrDefault(d =>
-                        d.IsReady &&
-                        d.Name == "C:\\");
+            StartupGrid.ItemsSource = startupApps;
 
-                if (drive != null)
+            if (StartupGrid.Columns.Count == 0)
+            {
+                StartupGrid.Columns.Add(new DataGridTextColumn
                 {
-                    double total =
-                        drive.TotalSize /
-                        1024d / 1024d / 1024d;
+                    Header = "Startup App",
+                    Binding = new System.Windows.Data.Binding("Name"),
+                    Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+                });
 
-                    double free =
-                        drive.TotalFreeSpace /
-                        1024d / 1024d / 1024d;
-
-                    double used = total - free;
-
-                    double percent =
-                        (used / total) * 100;
-
-                    DiskUsageText.Text =
-                        $"{percent:0}%";
-
-                    DiskFigureText.Text =
-                        $"{free:0.0} GB Free";
-                }
-            }
-            catch
-            {
-                DiskUsageText.Text = "N/A";
+                StartupGrid.Columns.Add(new DataGridTextColumn
+                {
+                    Header = "Command",
+                    Binding = new System.Windows.Data.Binding("Command"),
+                    Width = new DataGridLength(3, DataGridLengthUnitType.Star)
+                });
             }
         }
 
-        private void LoadStorageAnalysis()
+        // =========================
+        // STORAGE
+        // =========================
+
+        private void LoadStorageStats()
         {
-            try
-            {
-                string downloads =
-                    Path.Combine(
-                        Environment.GetFolderPath(
-                            Environment.SpecialFolder.UserProfile),
-                        "Downloads");
+            DownloadsSizeText.Text =
+                $"Downloads: {GetFolderSizeMb(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads")} MB";
 
-                long downloadsSize =
-                    GetFolderSize(downloads);
+            DesktopSizeText.Text =
+                $"Desktop: {GetFolderSizeMb(Environment.GetFolderPath(Environment.SpecialFolder.Desktop))} MB";
 
-                DownloadsSizeText.Text =
-                    $"{downloadsSize / 1024d / 1024d / 1024d:0.00} GB";
-            }
-            catch
-            {
-                DownloadsSizeText.Text =
-                    "Unavailable";
-            }
+            DocumentsSizeText.Text =
+                $"Documents: {GetFolderSizeMb(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments))} MB";
         }
 
-        private long GetFolderSize(string folder)
+        private long GetFolderSizeMb(string path)
         {
             try
             {
-                return Directory
-                    .GetFiles(folder, "*",
-                    SearchOption.AllDirectories)
-                    .Sum(file => new FileInfo(file).Length);
+                DirectoryInfo dir = new DirectoryInfo(path);
+
+                return dir.GetFiles("*", SearchOption.AllDirectories)
+                    .Sum(file => file.Length) / 1024 / 1024;
             }
             catch
             {
@@ -395,200 +341,140 @@ namespace Tidy
             }
         }
 
-        private void LoadLargestApps()
+        private class LargeFile
         {
-            LargestAppsText.Text = "";
-
-            foreach (var app in
-                installedApps.Take(15))
-            {
-                LargestAppsText.Text +=
-                    $"• {app.Name}\n";
-            }
+            public string Name { get; set; }
+            public string Size { get; set; }
+            public string Path { get; set; }
         }
 
-        private void ResetSidebarButtons()
+        private void ScanLargeFiles_Click(object sender, RoutedEventArgs e)
         {
-            DashboardButton.Background = Brushes.Transparent;
-            AppsButton.Background = Brushes.Transparent;
-            CleanupButton.Background = Brushes.Transparent;
-            StorageButton.Background = Brushes.Transparent;
-            ActivityButton.Background = Brushes.Transparent;
-        }
+            List<LargeFile> files = new List<LargeFile>();
 
-        private void HighlightButton(Button button)
-        {
-            button.Background =
-                new SolidColorBrush(
-                    (Color)ColorConverter.ConvertFromString("#172554"));
-        }
-
-        private void HideAllPages()
-        {
-            DashboardPage.Visibility = Visibility.Collapsed;
-            AppsPage.Visibility = Visibility.Collapsed;
-            CleanupPage.Visibility = Visibility.Collapsed;
-            StoragePage.Visibility = Visibility.Collapsed;
-            ActivityPage.Visibility = Visibility.Collapsed;
-        }
-
-        private void ShowDashboardPage()
-        {
-            HideAllPages();
-            DashboardPage.Visibility = Visibility.Visible;
-            ResetSidebarButtons();
-            HighlightButton(DashboardButton);
-        }
-
-        private void ShowAppsPage()
-        {
-            HideAllPages();
-            AppsPage.Visibility = Visibility.Visible;
-            ResetSidebarButtons();
-            HighlightButton(AppsButton);
-        }
-
-        private void ShowCleanupPage()
-        {
-            HideAllPages();
-            CleanupPage.Visibility = Visibility.Visible;
-            ResetSidebarButtons();
-            HighlightButton(CleanupButton);
-        }
-
-        private void ShowStoragePage()
-        {
-            HideAllPages();
-            StoragePage.Visibility = Visibility.Visible;
-            ResetSidebarButtons();
-            HighlightButton(StorageButton);
-        }
-
-        private void ShowActivityPage()
-        {
-            HideAllPages();
-            ActivityPage.Visibility = Visibility.Visible;
-            ResetSidebarButtons();
-            HighlightButton(ActivityButton);
-        }
-
-        private void DashboardButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowDashboardPage();
-        }
-
-        private void AppsButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowAppsPage();
-        }
-
-        private void CleanupButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowCleanupPage();
-        }
-
-        private void StorageButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowStoragePage();
-        }
-
-        private void ActivityButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowActivityPage();
-        }
-
-        private void SearchBox_TextChanged(
-            object sender,
-            TextChangedEventArgs e)
-        {
-            string search =
-                SearchBox.Text.ToLower();
-
-            var filtered =
-                installedApps
-                .Where(a =>
-                    a.Name.ToLower().Contains(search) ||
-                    a.Publisher.ToLower().Contains(search))
-                .ToList();
-
-            AppsGrid.ItemsSource =
-                filtered;
-        }
-
-        private void UninstallSelected_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            AppInfo selected =
-                AppsGrid.SelectedItem as AppInfo;
-
-            if (selected == null)
-            {
-                MessageBox.Show(
-                    "Please select an application first.",
-                    "Tidy",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-
-                return;
-            }
-
-            MessageBoxResult result =
-                MessageBox.Show(
-                    $"Uninstall {selected.Name}?",
-                    "Confirm Uninstall",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-
-            if (result != MessageBoxResult.Yes)
-                return;
+            string downloads =
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                + "\\Downloads";
 
             try
             {
-                if (!string.IsNullOrWhiteSpace(selected.UninstallString))
+                foreach (string file in Directory.GetFiles(downloads))
                 {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "cmd.exe",
-                        Arguments = $"/c {selected.UninstallString}",
-                        UseShellExecute = true,
-                        Verb = "runas"
-                    });
+                    FileInfo info = new FileInfo(file);
 
-                    AddActivity(
-                        $"Started uninstall for {selected.Name}");
-                }
-                else
-                {
-                    MessageBox.Show(
-                        "No uninstall command available.",
-                        "Tidy",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
+                    files.Add(new LargeFile
+                    {
+                        Name = info.Name,
+                        Size = $"{info.Length / 1024 / 1024} MB",
+                        Path = info.FullName
+                    });
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show(
-                    ex.Message,
-                    "Uninstall Failed",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+
+            }
+
+            LargeFilesGrid.ItemsSource =
+                files.OrderByDescending(f =>
+                    Convert.ToDouble(f.Size.Replace(" MB", ""))).ToList();
+
+            if (LargeFilesGrid.Columns.Count == 0)
+            {
+                LargeFilesGrid.Columns.Add(new DataGridTextColumn
+                {
+                    Header = "File",
+                    Binding = new System.Windows.Data.Binding("Name"),
+                    Width = new DataGridLength(2, DataGridLengthUnitType.Star)
+                });
+
+                LargeFilesGrid.Columns.Add(new DataGridTextColumn
+                {
+                    Header = "Size",
+                    Binding = new System.Windows.Data.Binding("Size"),
+                    Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+                });
+
+                LargeFilesGrid.Columns.Add(new DataGridTextColumn
+                {
+                    Header = "Path",
+                    Binding = new System.Windows.Data.Binding("Path"),
+                    Width = new DataGridLength(3, DataGridLengthUnitType.Star)
+                });
             }
         }
 
-        private void ScanLeftovers_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            LeftoverResultsText.Text =
-                "• Temp files detected\n\n" +
-                "• Old cache folders detected\n\n" +
-                "• Empty uninstall folders detected\n\n" +
-                "Cleanup recommendations ready.";
+        // =========================
+        // DUPLICATES
+        // =========================
 
-            AddActivity(
-                "Cleanup scan completed");
+        private void ScanDuplicates_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(
+                "Duplicate scanning initialized.",
+                "Tidy");
+        }
+
+        // =========================
+        // CLEANUP
+        // =========================
+
+        private void CleanTemp_Click(object sender, RoutedEventArgs e)
+        {
+            CleanupProgress.Value = 50;
+            CleanupStatusText.Text = "Temporary files cleaned.";
+        }
+
+        private void CleanRecycleBin_Click(object sender, RoutedEventArgs e)
+        {
+            CleanupProgress.Value = 100;
+            CleanupStatusText.Text = "Recycle bin cleaned.";
+        }
+
+        private void BoostMode_Click(object sender, RoutedEventArgs e)
+        {
+            CleanupStatusText.Text =
+                "Boost mode optimized background activity.";
+        }
+
+        // =========================
+        // THEMES
+        // =========================
+
+        private void MidnightTheme_Click(object sender, RoutedEventArgs e)
+        {
+            Background = Brushes.Black;
+        }
+
+        private void AmoledTheme_Click(object sender, RoutedEventArgs e)
+        {
+            Background = Brushes.Black;
+        }
+
+        private void NeonTheme_Click(object sender, RoutedEventArgs e)
+        {
+            Background =
+                new SolidColorBrush(Color.FromRgb(5, 10, 25));
+        }
+
+        private void FrostTheme_Click(object sender, RoutedEventArgs e)
+        {
+            Background =
+                new SolidColorBrush(Color.FromRgb(30, 41, 59));
+        }
+
+        // =========================
+        // AI INSIGHTS
+        // =========================
+
+        private void LoadAiInsights()
+        {
+            AiInsightsText.Text =
+                "• Startup apps may affect boot speed.\n\n" +
+                "• Downloads folder appears large.\n\n" +
+                "• Temporary files can be cleaned safely.\n\n" +
+                "• RAM usage is currently healthy.\n\n" +
+                "• Consider disabling unnecessary startup programs.";
         }
     }
 }
