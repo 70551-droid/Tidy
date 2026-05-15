@@ -7,54 +7,68 @@ using System.Linq;
 using System.Management;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace Tidy
 {
     public partial class MainWindow : Window
     {
-        private readonly DispatcherTimer statsTimer = new DispatcherTimer();
-
-        private readonly PerformanceCounter cpuCounter =
-            new PerformanceCounter("Processor", "% Processor Time", "_Total");
-
-        private readonly PerformanceCounter ramCounter =
-            new PerformanceCounter("Memory", "% Committed Bytes In Use");
-
-        private List<InstalledApp> installedApps =
-            new List<InstalledApp>();
+        private DispatcherTimer statsTimer;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            ThemeManager.Current.ApplicationTheme =
-                ApplicationTheme.Dark;
-
-            InitializeStats();
-
             LoadInstalledApps();
             LoadStartupApps();
-            LoadStorageStats();
-            LoadAiInsights();
+            StartLiveStats();
 
+            DashboardPage.Visibility = Visibility.Visible;
+            AppsPage.Visibility = Visibility.Collapsed;
+            CleanupPage.Visibility = Visibility.Collapsed;
+            StoragePage.Visibility = Visibility.Collapsed;
+            ActivityPage.Visibility = Visibility.Collapsed;
+        }
+
+        private void StartLiveStats()
+        {
+            statsTimer = new DispatcherTimer();
             statsTimer.Interval = TimeSpan.FromSeconds(1);
             statsTimer.Tick += StatsTimer_Tick;
             statsTimer.Start();
-
-            ShowPage(DashboardPage);
         }
 
-        // =========================
-        // NAVIGATION
-        // =========================
-
-        private void ShowPage(UIElement page)
+        private void StatsTimer_Tick(object? sender, EventArgs e)
         {
-            DashboardPage.Visibility = Visibility.Collapsed;
+            try
+            {
+                var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                cpuCounter.NextValue();
+                System.Threading.Thread.Sleep(200);
 
-            page.Visibility = Visibility.Visible;
+                CpuUsageText.Text = $"{Math.Round(cpuCounter.NextValue())}%";
+
+                var memoryInfo = new Microsoft.VisualBasic.Devices.ComputerInfo();
+
+                double totalRam = memoryInfo.TotalPhysicalMemory / 1024d / 1024d / 1024d;
+                double availableRam = memoryInfo.AvailablePhysicalMemory / 1024d / 1024d / 1024d;
+                double usedRam = totalRam - availableRam;
+
+                RamFigureText.Text = $"{usedRam:F1} GB Used";
+
+                DriveInfo drive = DriveInfo.GetDrives()
+                    .FirstOrDefault(d => d.IsReady && d.Name == "C:\\");
+
+                if (drive != null)
+                {
+                    double used = (drive.TotalSize - drive.AvailableFreeSpace) / 1024d / 1024d / 1024d;
+                    DiskFigureText.Text = $"{used:F1} GB Used";
+                }
+            }
+            catch
+            {
+
+            }
         }
 
         private void DashboardButton_Click(object sender, RoutedEventArgs e)
@@ -64,214 +78,220 @@ namespace Tidy
 
         private void AppsButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "Installed Apps page preserved in reactor core.",
-                "Tidy");
-        }
-
-        private void StartupButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                "Startup Apps manager online.",
-                "Tidy");
+            ShowPage(AppsPage);
         }
 
         private void CleanupButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "Cleanup engine online.",
-                "Tidy");
+            ShowPage(CleanupPage);
         }
 
         private void StorageButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "Storage analyzer online.",
-                "Tidy");
-        }
-
-        private void DuplicateButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                "Duplicate finder initializing.",
-                "Tidy");
-        }
-
-        private void ThemesButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                "Theme engine activated.",
-                "Tidy");
-        }
-
-        private void AiButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                "AI insights loaded.",
-                "Tidy");
+            ShowPage(StoragePage);
         }
 
         private void ActivityButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "Activity feed online.",
-                "Tidy");
+            ShowPage(ActivityPage);
         }
 
-        // =========================
-        // SYSTEM STATS
-        // =========================
-
-        private void InitializeStats()
+        private void ShowPage(Grid page)
         {
-            CpuUsageText.Text = "0%";
-            RamUsageText.Text = "0%";
-            DiskUsageText.Text = "0%";
-            GpuUsageText.Text = "0%";
-        }
+            DashboardPage.Visibility = Visibility.Collapsed;
+            AppsPage.Visibility = Visibility.Collapsed;
+            CleanupPage.Visibility = Visibility.Collapsed;
+            StoragePage.Visibility = Visibility.Collapsed;
+            ActivityPage.Visibility = Visibility.Collapsed;
 
-        private void StatsTimer_Tick(object sender, EventArgs e)
-        {
-            try
-            {
-                float cpu = cpuCounter.NextValue();
-                float ram = ramCounter.NextValue();
-
-                CpuUsageText.Text = $"{cpu:0}%";
-                RamUsageText.Text = $"{ram:0}%";
-
-                RamFigureText.Text =
-                    $"{GetUsedRam():0.0} GB Used";
-
-                DriveInfo drive = DriveInfo.GetDrives()
-                    .FirstOrDefault(d =>
-                        d.IsReady && d.Name == "C:\\");
-
-                if (drive != null)
-                {
-                    double used =
-                        ((double)(drive.TotalSize -
-                        drive.AvailableFreeSpace)
-                        / drive.TotalSize) * 100;
-
-                    DiskUsageText.Text =
-                        $"{used:0}%";
-                }
-
-                GpuUsageText.Text = "Active";
-            }
-            catch
-            {
-
-            }
-        }
-
-        private double GetUsedRam()
-        {
-            try
-            {
-                ObjectQuery query = new ObjectQuery(
-                    "SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem");
-
-                ManagementObjectSearcher searcher =
-                    new ManagementObjectSearcher(query);
-
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    double total =
-                        Convert.ToDouble(obj["TotalVisibleMemorySize"])
-                        / 1024 / 1024;
-
-                    double free =
-                        Convert.ToDouble(obj["FreePhysicalMemory"])
-                        / 1024 / 1024;
-
-                    return total - free;
-                }
-            }
-            catch
-            {
-
-            }
-
-            return 0;
-        }
-
-        // =========================
-        // INSTALLED APPS
-        // =========================
-
-        private class InstalledApp
-        {
-            public string Name { get; set; }
-
-            public string Version { get; set; }
-
-            public string Publisher { get; set; }
+            page.Visibility = Visibility.Visible;
         }
 
         private void LoadInstalledApps()
         {
-            installedApps.Clear();
-
-            string uninstallKey =
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
-
-            RegistryKey registryKey =
-                Registry.LocalMachine.OpenSubKey(uninstallKey);
-
-            if (registryKey == null)
-                return;
-
-            foreach (string subkeyName in registryKey.GetSubKeyNames())
+            try
             {
-                RegistryKey subkey =
-                    registryKey.OpenSubKey(subkeyName);
+                AppsGrid.Items.Clear();
 
-                string name =
-                    subkey?.GetValue("DisplayName")?.ToString();
+                string registryKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
 
-                if (string.IsNullOrWhiteSpace(name))
-                    continue;
+                using RegistryKey key = Registry.LocalMachine.OpenSubKey(registryKey);
 
-                installedApps.Add(new InstalledApp
+                if (key == null)
+                    return;
+
+                foreach (string subkeyName in key.GetSubKeyNames())
                 {
-                    Name = name,
+                    using RegistryKey subkey = key.OpenSubKey(subkeyName);
 
-                    Version =
-                        subkey.GetValue("DisplayVersion")?.ToString(),
+                    string name = subkey?.GetValue("DisplayName")?.ToString() ?? "";
+                    string version = subkey?.GetValue("DisplayVersion")?.ToString() ?? "";
+                    string publisher = subkey?.GetValue("Publisher")?.ToString() ?? "";
 
-                    Publisher =
-                        subkey.GetValue("Publisher")?.ToString()
-                });
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        AppsGrid.Items.Add(new AppItem
+                        {
+                            Name = name,
+                            Version = version,
+                            Publisher = publisher
+                        });
+                    }
+                }
+
+                InstalledCountText.Text = AppsGrid.Items.Count.ToString();
+            }
+            catch
+            {
+
             }
         }
 
-        // =========================
-        // STARTUP APPS
-        // =========================
-
         private void LoadStartupApps()
         {
+            try
+            {
+                StartupGrid.Items.Clear();
 
+                using RegistryKey key = Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Run");
+
+                if (key == null)
+                    return;
+
+                foreach (string appName in key.GetValueNames())
+                {
+                    StartupGrid.Items.Add(new StartupItem
+                    {
+                        Name = appName,
+                        Command = key.GetValue(appName)?.ToString() ?? ""
+                    });
+                }
+            }
+            catch
+            {
+
+            }
         }
 
-        // =========================
-        // STORAGE
-        // =========================
-
-        private void LoadStorageStats()
+        private void CleanTemp_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                string tempPath = Path.GetTempPath();
 
+                foreach (string file in Directory.GetFiles(tempPath))
+                {
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch
+                    {
+
+                    }
+                }
+
+                CleanupResultText.Text = "Temporary files cleaned.";
+            }
+            catch
+            {
+                CleanupResultText.Text = "Cleanup failed.";
+            }
         }
 
-        // =========================
-        // AI INSIGHTS
-        // =========================
-
-        private void LoadAiInsights()
+        private void CleanRecycle_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = "Clear-RecycleBin -Force",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                });
 
+                CleanupResultText.Text = "Recycle Bin cleaned.";
+            }
+            catch
+            {
+                CleanupResultText.Text = "Recycle Bin cleanup failed.";
+            }
         }
+
+        private void BoostMode_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                foreach (Process proc in Process.GetProcesses())
+                {
+                    try
+                    {
+                        if (!proc.ProcessName.ToLower().Contains("system"))
+                        {
+                            proc.PriorityClass = ProcessPriorityClass.BelowNormal;
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+
+                CleanupResultText.Text = "Boost mode optimized background activity.";
+            }
+            catch
+            {
+                CleanupResultText.Text = "Boost mode failed.";
+            }
+        }
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string query = SearchBox.Text.ToLower();
+
+            AppsGrid.Items.Clear();
+
+            string registryKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+
+            using RegistryKey key = Registry.LocalMachine.OpenSubKey(registryKey);
+
+            if (key == null)
+                return;
+
+            foreach (string subkeyName in key.GetSubKeyNames())
+            {
+                using RegistryKey subkey = key.OpenSubKey(subkeyName);
+
+                string name = subkey?.GetValue("DisplayName")?.ToString() ?? "";
+                string version = subkey?.GetValue("DisplayVersion")?.ToString() ?? "";
+                string publisher = subkey?.GetValue("Publisher")?.ToString() ?? "";
+
+                if (!string.IsNullOrWhiteSpace(name) &&
+                    name.ToLower().Contains(query))
+                {
+                    AppsGrid.Items.Add(new AppItem
+                    {
+                        Name = name,
+                        Version = version,
+                        Publisher = publisher
+                    });
+                }
+            }
+        }
+    }
+
+    public class AppItem
+    {
+        public string Name { get; set; } = "";
+        public string Version { get; set; } = "";
+        public string Publisher { get; set; } = "";
+    }
+
+    public class StartupItem
+    {
+        public string Name { get; set; } = "";
+        public string Command { get; set; } = "";
     }
 }
