@@ -331,19 +331,113 @@
                                 BorderThickness="1">
 
                             <DataGrid x:Name="AppsGrid"
-                                      AutoGenerateColumns="False"
-                                      IsReadOnly="True"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      CanUserResizeRows="False"
-                                      SelectionMode="Single"
-                                      SelectionUnit="FullRow"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                      Background="#111827"
-                                      Foreground="White"
-                                      BorderThickness="0"/>
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          CanUserAddRows="False"
+          CanUserDeleteRows="False"
+          CanUserResizeRows="False"
+          SelectionMode="Single"
+          SelectionUnit="FullRow"
+          HeadersVisibility="Column"
+          ScrollViewer.VerticalScrollBarVisibility="Auto"
+          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+          Background="#111827"
+          Foreground="White"
+          BorderThickness="0"
+          GridLinesVisibility="None"
+          RowBackground="#111827"
+          AlternatingRowBackground="#172033"
+          HorizontalGridLinesBrush="#1E293B"
+          VerticalGridLinesBrush="#1E293B">
 
+    <DataGrid.Resources>
+
+        <!-- COLUMN HEADERS -->
+
+        <Style TargetType="DataGridColumnHeader">
+
+            <Setter Property="Background"
+                    Value="#0F172A"/>
+
+            <Setter Property="Foreground"
+                    Value="White"/>
+
+            <Setter Property="BorderBrush"
+                    Value="#1E293B"/>
+
+            <Setter Property="BorderThickness"
+                    Value="0,0,0,1"/>
+
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+
+            <Setter Property="Height"
+                    Value="42"/>
+
+        </Style>
+
+        <!-- CELLS -->
+
+        <Style TargetType="DataGridCell">
+
+            <Setter Property="Background"
+                    Value="Transparent"/>
+
+            <Setter Property="Foreground"
+                    Value="White"/>
+
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+
+            <Setter Property="Padding"
+                    Value="10,4"/>
+
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
+
+        </Style>
+
+        <!-- ROWS -->
+
+        <Style TargetType="DataGridRow">
+
+            <Setter Property="Background"
+                    Value="#111827"/>
+
+            <Setter Property="Foreground"
+                    Value="White"/>
+
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+
+            <Setter Property="Height"
+                    Value="38"/>
+
+            <Style.Triggers>
+
+                <Trigger Property="IsMouseOver"
+                         Value="True">
+
+                    <Setter Property="Background"
+                            Value="#1D4ED8"/>
+
+                </Trigger>
+
+                <Trigger Property="IsSelected"
+                         Value="True">
+
+                    <Setter Property="Background"
+                            Value="#2563EB"/>
+
+                </Trigger>
+
+            </Style.Triggers>
+
+        </Style>
+
+    </DataGrid.Resources>
+
+</DataGrid>
                         </Border>
 
                     </Grid>
