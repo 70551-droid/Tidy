@@ -158,18 +158,33 @@ namespace Tidy
         }
 
         private double GetUsedRam()
+{
+    try
+    {
+        ObjectQuery query = new ObjectQuery(
+            "SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem");
+
+        ManagementObjectSearcher searcher =
+            new ManagementObjectSearcher(query);
+
+        foreach (ManagementObject obj in searcher.Get())
         {
             double total =
-                new Microsoft.VisualBasic.Devices.ComputerInfo()
-                .TotalPhysicalMemory / 1024d / 1024d / 1024d;
+                Convert.ToDouble(obj["TotalVisibleMemorySize"]) / 1024 / 1024;
 
-            double available =
-                new Microsoft.VisualBasic.Devices.ComputerInfo()
-                .AvailablePhysicalMemory / 1024d / 1024d / 1024d;
+            double free =
+                Convert.ToDouble(obj["FreePhysicalMemory"]) / 1024 / 1024;
 
-            return total - available;
+            return total - free;
         }
+    }
+    catch
+    {
 
+    }
+
+    return 0;
+}
         // =========================
         // INSTALLED APPS
         // =========================
