@@ -17,13 +17,6 @@
 
         <ResourceDictionary>
 
-            <ResourceDictionary.MergedDictionaries>
-
-                <ui:ThemeResources />
-                <ui:XamlControlsResources />
-
-            </ResourceDictionary.MergedDictionaries>
-
             <!-- COLORS -->
 
             <SolidColorBrush x:Key="SidebarBrush" Color="#0B1220"/>
