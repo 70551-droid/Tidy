@@ -13,7 +13,7 @@
            Background="#070B14"
            WindowStartupLocation="CenterScreen">
 
-    <ui:Window.Resources>
+    <Window.Resources>
 
         <ResourceDictionary>
 
@@ -128,7 +128,7 @@
 
         </ResourceDictionary>
 
-    </ui:Window.Resources>
+    </Window.Resources>
 
     <Grid>
 
