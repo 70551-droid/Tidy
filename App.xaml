@@ -10,7 +10,7 @@
             <ResourceDictionary.MergedDictionaries>
 
                 <ui:ThemeResources />
-                <ui:XamlControlsResources />
+                <ui:XamlControlsResources/>
 
             </ResourceDictionary.MergedDictionaries>
 
