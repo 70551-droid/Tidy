@@ -143,7 +143,7 @@ namespace Tidy
                         $"{freeGb:0} GB free of {totalGb:0} GB";
                 }
 
-                RamFigureText.Text = $"{GetUsedRam()} GB Used";
+                RamFigureText.Text = $"{GetUsedRam():0.0} GB Used";
 
                 UptimeText.Text =
                     TimeSpan.FromMilliseconds(Environment.TickCount64)
@@ -435,22 +435,69 @@ namespace Tidy
         // =========================
 
         private void CleanTemp_Click(object sender, RoutedEventArgs e)
+{
+    try
+    {
+        string tempPath = Path.GetTempPath();
+
+        foreach (string file in Directory.GetFiles(tempPath))
         {
-            CleanupProgress.Value = 50;
-            CleanupStatusText.Text = "Temporary files cleaned.";
+            try
+            {
+                File.Delete(file);
+            }
+            catch
+            {
+
+            }
         }
+
+        foreach (string dir in Directory.GetDirectories(tempPath))
+        {
+            try
+            {
+                Directory.Delete(dir, true);
+            }
+            catch
+            {
+
+            }
+        }
+
+        CleanupProgress.Value = 50;
+        CleanupStatusText.Text =
+            "Temporary files cleaned successfully.";
+    }
+    catch
+    {
+        CleanupStatusText.Text =
+            "Failed to clean temp files.";
+    }
+}
 
         private void CleanRecycleBin_Click(object sender, RoutedEventArgs e)
+{
+    try
+    {
+        Process.Start(new ProcessStartInfo
         {
-            CleanupProgress.Value = 100;
-            CleanupStatusText.Text = "Recycle bin cleaned.";
-        }
+            FileName = "powershell",
+            Arguments = "Clear-RecycleBin -Force",
+            CreateNoWindow = true,
+            UseShellExecute = false
+        });
 
-        private void BoostMode_Click(object sender, RoutedEventArgs e)
-        {
-            CleanupStatusText.Text =
-                "Boost mode optimized background activity.";
-        }
+        CleanupProgress.Value = 100;
+
+        CleanupStatusText.Text =
+            "Recycle Bin cleaned successfully.";
+    }
+    catch
+    {
+        CleanupStatusText.Text =
+            "Failed to clean Recycle Bin.";
+    }
+}
 
         // =========================
         // THEMES
