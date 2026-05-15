@@ -27,10 +27,10 @@ namespace Tidy
 
             DashboardPage.Visibility = Visibility.Visible;
 
-            AppsScrollViewer.Visibility = Visibility.Collapsed;
-            CleanupScrollViewer.Visibility = Visibility.Collapsed;
-            StorageScrollViewer.Visibility = Visibility.Collapsed;
-            ActivityScrollViewer.Visibility = Visibility.Collapsed;
+            AppsPage.Visibility = Visibility.Collapsed;
+            CleanupPage.Visibility = Visibility.Collapsed;
+            StoragePage.Visibility = Visibility.Collapsed;
+            ActivityPage.Visibility = Visibility.Collapsed;
         }
 
         // =========================
@@ -105,32 +105,32 @@ namespace Tidy
 
         private void AppsButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(AppsScrollViewer);
+            ShowPage(AppsPage);
         }
 
         private void CleanupButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(CleanupScrollViewer);
+            ShowPage(CleanupPage);
         }
 
         private void StorageButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(StorageScrollViewer);
+            ShowPage(StoragePage);
         }
 
         private void ActivityButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(ActivityScrollViewer);
+            ShowPage(ActivityPage);
         }
 
         private void ShowPage(UIElement page)
         {
             DashboardPage.Visibility = Visibility.Collapsed;
 
-            AppsScrollViewer.Visibility = Visibility.Collapsed;
-            CleanupScrollViewer.Visibility = Visibility.Collapsed;
-            StorageScrollViewer.Visibility = Visibility.Collapsed;
-            ActivityScrollViewer.Visibility = Visibility.Collapsed;
+            AppsPage.Visibility = Visibility.Collapsed;
+            CleanupPage.Visibility = Visibility.Collapsed;
+            StoragePage.Visibility = Visibility.Collapsed;
+            ActivityPage.Visibility = Visibility.Collapsed;
 
             page.Visibility = Visibility.Visible;
         }
