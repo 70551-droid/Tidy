@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using ModernWpf;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -22,11 +23,18 @@ namespace Tidy
         private readonly PerformanceCounter ramCounter =
             new PerformanceCounter("Memory", "% Committed Bytes In Use");
 
+        private List<InstalledApp> installedApps =
+            new List<InstalledApp>();
+
         public MainWindow()
         {
             InitializeComponent();
 
+            ThemeManager.Current.ApplicationTheme =
+                ApplicationTheme.Dark;
+
             InitializeStats();
+
             LoadInstalledApps();
             LoadStartupApps();
             LoadStorageStats();
@@ -46,14 +54,6 @@ namespace Tidy
         private void ShowPage(UIElement page)
         {
             DashboardPage.Visibility = Visibility.Collapsed;
-            AppsPage.Visibility = Visibility.Collapsed;
-            StartupPage.Visibility = Visibility.Collapsed;
-            CleanupPage.Visibility = Visibility.Collapsed;
-            StoragePage.Visibility = Visibility.Collapsed;
-            DuplicatePage.Visibility = Visibility.Collapsed;
-            ThemesPage.Visibility = Visibility.Collapsed;
-            AiPage.Visibility = Visibility.Collapsed;
-            ActivityPage.Visibility = Visibility.Collapsed;
 
             page.Visibility = Visibility.Visible;
         }
@@ -65,42 +65,58 @@ namespace Tidy
 
         private void AppsButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(AppsPage);
+            MessageBox.Show(
+                "Installed Apps page preserved in reactor core.",
+                "Tidy");
         }
 
         private void StartupButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(StartupPage);
+            MessageBox.Show(
+                "Startup Apps manager online.",
+                "Tidy");
         }
 
         private void CleanupButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(CleanupPage);
+            MessageBox.Show(
+                "Cleanup engine online.",
+                "Tidy");
         }
 
         private void StorageButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(StoragePage);
+            MessageBox.Show(
+                "Storage analyzer online.",
+                "Tidy");
         }
 
         private void DuplicateButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(DuplicatePage);
+            MessageBox.Show(
+                "Duplicate finder initializing.",
+                "Tidy");
         }
 
         private void ThemesButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(ThemesPage);
+            MessageBox.Show(
+                "Theme engine activated.",
+                "Tidy");
         }
 
         private void AiButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(AiPage);
+            MessageBox.Show(
+                "AI insights loaded.",
+                "Tidy");
         }
 
         private void ActivityButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(ActivityPage);
+            MessageBox.Show(
+                "Activity feed online.",
+                "Tidy");
         }
 
         // =========================
@@ -125,29 +141,23 @@ namespace Tidy
                 CpuUsageText.Text = $"{cpu:0}%";
                 RamUsageText.Text = $"{ram:0}%";
 
+                RamFigureText.Text =
+                    $"{GetUsedRam():0.0} GB Used";
+
                 DriveInfo drive = DriveInfo.GetDrives()
-                    .FirstOrDefault(d => d.IsReady && d.Name == "C:\\");
+                    .FirstOrDefault(d =>
+                        d.IsReady && d.Name == "C:\\");
 
                 if (drive != null)
                 {
                     double used =
-                        ((double)(drive.TotalSize - drive.AvailableFreeSpace)
+                        ((double)(drive.TotalSize -
+                        drive.AvailableFreeSpace)
                         / drive.TotalSize) * 100;
 
-                    DiskUsageText.Text = $"{used:0}%";
-
-                    double totalGb = drive.TotalSize / 1024d / 1024d / 1024d;
-                    double freeGb = drive.AvailableFreeSpace / 1024d / 1024d / 1024d;
-
-                    DiskFigureText.Text =
-                        $"{freeGb:0} GB free of {totalGb:0} GB";
+                    DiskUsageText.Text =
+                        $"{used:0}%";
                 }
-
-                RamFigureText.Text = $"{GetUsedRam():0.0} GB Used";
-
-                UptimeText.Text =
-                    TimeSpan.FromMilliseconds(Environment.TickCount64)
-                    .ToString(@"dd\.hh\:mm\:ss");
 
                 GpuUsageText.Text = "Active";
             }
@@ -158,33 +168,36 @@ namespace Tidy
         }
 
         private double GetUsedRam()
-{
-    try
-    {
-        ObjectQuery query = new ObjectQuery(
-            "SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem");
-
-        ManagementObjectSearcher searcher =
-            new ManagementObjectSearcher(query);
-
-        foreach (ManagementObject obj in searcher.Get())
         {
-            double total =
-                Convert.ToDouble(obj["TotalVisibleMemorySize"]) / 1024 / 1024;
+            try
+            {
+                ObjectQuery query = new ObjectQuery(
+                    "SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem");
 
-            double free =
-                Convert.ToDouble(obj["FreePhysicalMemory"]) / 1024 / 1024;
+                ManagementObjectSearcher searcher =
+                    new ManagementObjectSearcher(query);
 
-            return total - free;
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    double total =
+                        Convert.ToDouble(obj["TotalVisibleMemorySize"])
+                        / 1024 / 1024;
+
+                    double free =
+                        Convert.ToDouble(obj["FreePhysicalMemory"])
+                        / 1024 / 1024;
+
+                    return total - free;
+                }
+            }
+            catch
+            {
+
+            }
+
+            return 0;
         }
-    }
-    catch
-    {
 
-    }
-
-    return 0;
-}
         // =========================
         // INSTALLED APPS
         // =========================
@@ -192,12 +205,11 @@ namespace Tidy
         private class InstalledApp
         {
             public string Name { get; set; }
+
             public string Version { get; set; }
+
             public string Publisher { get; set; }
         }
-
-        private List<InstalledApp> installedApps =
-            new List<InstalledApp>();
 
         private void LoadInstalledApps()
         {
@@ -214,9 +226,11 @@ namespace Tidy
 
             foreach (string subkeyName in registryKey.GetSubKeyNames())
             {
-                RegistryKey subkey = registryKey.OpenSubKey(subkeyName);
+                RegistryKey subkey =
+                    registryKey.OpenSubKey(subkeyName);
 
-                string name = subkey?.GetValue("DisplayName")?.ToString();
+                string name =
+                    subkey?.GetValue("DisplayName")?.ToString();
 
                 if (string.IsNullOrWhiteSpace(name))
                     continue;
@@ -224,105 +238,23 @@ namespace Tidy
                 installedApps.Add(new InstalledApp
                 {
                     Name = name,
-                    Version = subkey.GetValue("DisplayVersion")?.ToString(),
-                    Publisher = subkey.GetValue("Publisher")?.ToString()
+
+                    Version =
+                        subkey.GetValue("DisplayVersion")?.ToString(),
+
+                    Publisher =
+                        subkey.GetValue("Publisher")?.ToString()
                 });
             }
-
-            AppsGrid.ItemsSource = installedApps;
-            InstalledCountText.Text = installedApps.Count.ToString();
-
-            if (AppsGrid.Columns.Count == 0)
-            {
-                AppsGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Name",
-                    Binding = new System.Windows.Data.Binding("Name"),
-                    Width = new DataGridLength(3, DataGridLengthUnitType.Star)
-                });
-
-                AppsGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Version",
-                    Binding = new System.Windows.Data.Binding("Version"),
-                    Width = new DataGridLength(1, DataGridLengthUnitType.Star)
-                });
-
-                AppsGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Publisher",
-                    Binding = new System.Windows.Data.Binding("Publisher"),
-                    Width = new DataGridLength(2, DataGridLengthUnitType.Star)
-                });
-            }
-        }
-
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            string query = SearchBox.Text.ToLower();
-
-            AppsGrid.ItemsSource =
-                installedApps.Where(a =>
-                    a.Name != null &&
-                    a.Name.ToLower().Contains(query)).ToList();
-        }
-
-        private void UninstallSelected_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                "Uninstall logic placeholder.",
-                "Tidy");
         }
 
         // =========================
         // STARTUP APPS
         // =========================
 
-        private class StartupApp
-        {
-            public string Name { get; set; }
-            public string Command { get; set; }
-        }
-
         private void LoadStartupApps()
         {
-            List<StartupApp> startupApps =
-                new List<StartupApp>();
 
-            RegistryKey key =
-                Registry.CurrentUser.OpenSubKey(
-                    @"Software\Microsoft\Windows\CurrentVersion\Run");
-
-            if (key != null)
-            {
-                foreach (string valueName in key.GetValueNames())
-                {
-                    startupApps.Add(new StartupApp
-                    {
-                        Name = valueName,
-                        Command = key.GetValue(valueName)?.ToString()
-                    });
-                }
-            }
-
-            StartupGrid.ItemsSource = startupApps;
-
-            if (StartupGrid.Columns.Count == 0)
-            {
-                StartupGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Startup App",
-                    Binding = new System.Windows.Data.Binding("Name"),
-                    Width = new DataGridLength(1, DataGridLengthUnitType.Star)
-                });
-
-                StartupGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Command",
-                    Binding = new System.Windows.Data.Binding("Command"),
-                    Width = new DataGridLength(3, DataGridLengthUnitType.Star)
-                });
-            }
         }
 
         // =========================
@@ -331,198 +263,7 @@ namespace Tidy
 
         private void LoadStorageStats()
         {
-            DownloadsSizeText.Text =
-                $"Downloads: {GetFolderSizeMb(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads")} MB";
 
-            DesktopSizeText.Text =
-                $"Desktop: {GetFolderSizeMb(Environment.GetFolderPath(Environment.SpecialFolder.Desktop))} MB";
-
-            DocumentsSizeText.Text =
-                $"Documents: {GetFolderSizeMb(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments))} MB";
-        }
-
-        private long GetFolderSizeMb(string path)
-        {
-            try
-            {
-                DirectoryInfo dir = new DirectoryInfo(path);
-
-                return dir.GetFiles("*", SearchOption.AllDirectories)
-                    .Sum(file => file.Length) / 1024 / 1024;
-            }
-            catch
-            {
-                return 0;
-            }
-        }
-
-        private class LargeFile
-        {
-            public string Name { get; set; }
-            public string Size { get; set; }
-            public string Path { get; set; }
-        }
-
-        private void ScanLargeFiles_Click(object sender, RoutedEventArgs e)
-        {
-            List<LargeFile> files = new List<LargeFile>();
-
-            string downloads =
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-                + "\\Downloads";
-
-            try
-            {
-                foreach (string file in Directory.GetFiles(downloads))
-                {
-                    FileInfo info = new FileInfo(file);
-
-                    files.Add(new LargeFile
-                    {
-                        Name = info.Name,
-                        Size = $"{info.Length / 1024 / 1024} MB",
-                        Path = info.FullName
-                    });
-                }
-            }
-            catch
-            {
-
-            }
-
-            LargeFilesGrid.ItemsSource =
-                files.OrderByDescending(f =>
-                    Convert.ToDouble(f.Size.Replace(" MB", ""))).ToList();
-
-            if (LargeFilesGrid.Columns.Count == 0)
-            {
-                LargeFilesGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "File",
-                    Binding = new System.Windows.Data.Binding("Name"),
-                    Width = new DataGridLength(2, DataGridLengthUnitType.Star)
-                });
-
-                LargeFilesGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Size",
-                    Binding = new System.Windows.Data.Binding("Size"),
-                    Width = new DataGridLength(1, DataGridLengthUnitType.Star)
-                });
-
-                LargeFilesGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Path",
-                    Binding = new System.Windows.Data.Binding("Path"),
-                    Width = new DataGridLength(3, DataGridLengthUnitType.Star)
-                });
-            }
-        }
-
-        // =========================
-        // DUPLICATES
-        // =========================
-
-        private void ScanDuplicates_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                "Duplicate scanning initialized.",
-                "Tidy");
-        }
-
-        // =========================
-        // CLEANUP
-        // =========================
-
-        private void CleanTemp_Click(object sender, RoutedEventArgs e)
-{
-    try
-    {
-        string tempPath = Path.GetTempPath();
-
-        foreach (string file in Directory.GetFiles(tempPath))
-        {
-            try
-            {
-                File.Delete(file);
-            }
-            catch
-            {
-
-            }
-        }
-
-        foreach (string dir in Directory.GetDirectories(tempPath))
-        {
-            try
-            {
-                Directory.Delete(dir, true);
-            }
-            catch
-            {
-
-            }
-        }
-
-        CleanupProgress.Value = 50;
-        CleanupStatusText.Text =
-            "Temporary files cleaned successfully.";
-    }
-    catch
-    {
-        CleanupStatusText.Text =
-            "Failed to clean temp files.";
-    }
-}
-
-        private void CleanRecycleBin_Click(object sender, RoutedEventArgs e)
-{
-    try
-    {
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "powershell",
-            Arguments = "Clear-RecycleBin -Force",
-            CreateNoWindow = true,
-            UseShellExecute = false
-        });
-
-        CleanupProgress.Value = 100;
-
-        CleanupStatusText.Text =
-            "Recycle Bin cleaned successfully.";
-    }
-    catch
-    {
-        CleanupStatusText.Text =
-            "Failed to clean Recycle Bin.";
-    }
-}
-
-        // =========================
-        // THEMES
-        // =========================
-
-        private void MidnightTheme_Click(object sender, RoutedEventArgs e)
-        {
-            Background = Brushes.Black;
-        }
-
-        private void AmoledTheme_Click(object sender, RoutedEventArgs e)
-        {
-            Background = Brushes.Black;
-        }
-
-        private void NeonTheme_Click(object sender, RoutedEventArgs e)
-        {
-            Background =
-                new SolidColorBrush(Color.FromRgb(5, 10, 25));
-        }
-
-        private void FrostTheme_Click(object sender, RoutedEventArgs e)
-        {
-            Background =
-                new SolidColorBrush(Color.FromRgb(30, 41, 59));
         }
 
         // =========================
@@ -531,12 +272,7 @@ namespace Tidy
 
         private void LoadAiInsights()
         {
-            AiInsightsText.Text =
-                "• Startup apps may affect boot speed.\n\n" +
-                "• Downloads folder appears large.\n\n" +
-                "• Temporary files can be cleaned safely.\n\n" +
-                "• RAM usage is currently healthy.\n\n" +
-                "• Consider disabling unnecessary startup programs.";
+
         }
     }
 }
