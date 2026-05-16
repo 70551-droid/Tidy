@@ -7,8 +7,7 @@
         MinHeight="600"
         MinWidth="1000"
         WindowStartupLocation="CenterScreen"
-        Background="#070B14"
-        Icon="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232563EB' width='100' height='100'/><text x='50' y='70' font-size='60' font-weight='bold' fill='white' text-anchor='middle'>T</text></svg>">
+        Background="#070B14">
 
     <Window.Resources>
 
