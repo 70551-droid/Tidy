@@ -15,6 +15,7 @@ namespace Tidy
         private readonly DispatcherTimer statsTimer;
         private readonly PerformanceCounter cpuCounter;
         private bool isDisposed = false;
+        private DateTime lastUpdateTime;
 
         public MainWindow()
         {
@@ -35,8 +36,11 @@ namespace Tidy
             statsTimer.Tick += StatsTimer_Tick;
             statsTimer.Start();
 
+            lastUpdateTime = DateTime.Now;
+
             LoadInstalledApps();
             LoadStartupApps();
+            LoadStorageInfo();
 
             DashboardPage.Visibility = Visibility.Visible;
 
@@ -78,7 +82,8 @@ namespace Tidy
                     double cpuUsage = Math.Round(cpuCounter.NextValue());
 
                     // Get RAM usage
-                    double ramUsage = Process.GetProcesses()
+                    double ramTotal = GC.GetTotalMemory(false) / 1024d / 1024d / 1024d;
+                    var ramUsage = Process.GetProcesses()
                         .AsParallel()
                         .Sum(p =>
                         {
@@ -99,21 +104,35 @@ namespace Tidy
                             d.IsReady &&
                             d.Name == "C:\\");
 
+                    double diskPercentage = 0;
+                    if (drive != null)
+                    {
+                        diskPercentage = (drive.TotalSize - drive.AvailableFreeSpace) / (double)drive.TotalSize * 100;
+                    }
+
                     // Update UI on dispatcher thread
                     Dispatcher.Invoke(() =>
                     {
                         CpuUsageText.Text = $"{cpuUsage}%";
+                        CpuProgressBar.Value = cpuUsage;
+                        
                         RamFigureText.Text = $"{ramUsage:F1} GB Used";
+                        
+                        // Estimate RAM percentage (assuming 16GB typical)
+                        double ramPercentage = Math.Min(ramUsage / 16.0 * 100, 100);
+                        RamProgressBar.Value = ramPercentage;
 
                         if (drive != null)
                         {
-                            double used =
-                                (drive.TotalSize -
-                                drive.AvailableFreeSpace)
-                                / 1024d / 1024d / 1024d;
-
-                            DiskUsageText.Text = $"{used:F1} GB Used";
+                            double used = (drive.TotalSize - drive.AvailableFreeSpace) / 1024d / 1024d / 1024d;
+                            double total = drive.TotalSize / 1024d / 1024d / 1024d;
+                            DiskUsageText.Text = $"{used:F1} GB / {total:F1} GB";
+                            DiskProgressBar.Value = diskPercentage;
                         }
+
+                        // Update last updated time
+                        lastUpdateTime = DateTime.Now;
+                        LastUpdatedText.Text = $"Last updated: {lastUpdateTime:HH:mm:ss}";
                     });
                 }
                 catch (Exception ex)
@@ -145,6 +164,7 @@ namespace Tidy
         private void StorageButton_Click(object sender, RoutedEventArgs e)
         {
             ShowPage(StoragePage);
+            LoadStorageInfo();
         }
 
         private void ActivityButton_Click(object sender, RoutedEventArgs e)
@@ -154,14 +174,11 @@ namespace Tidy
 
         private void StartupButton_Click(object sender, RoutedEventArgs e)
         {
-            // This button is currently not used - maps to Activity page
-            // Could be expanded for dedicated startup apps management
             ShowPage(ActivityPage);
         }
 
         private void DuplicateButton_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Implement duplicate file finder
             MessageBox.Show(
                 "Duplicate Finder feature coming soon!",
                 "Feature in Development",
@@ -171,7 +188,6 @@ namespace Tidy
 
         private void ThemesButton_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Implement theme switcher
             MessageBox.Show(
                 "Themes feature coming soon!",
                 "Feature in Development",
@@ -181,7 +197,6 @@ namespace Tidy
 
         private void AiButton_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Implement AI tools
             MessageBox.Show(
                 "AI Tools feature coming soon!",
                 "Feature in Development",
@@ -192,7 +207,6 @@ namespace Tidy
         private void ShowPage(UIElement page)
         {
             DashboardPage.Visibility = Visibility.Collapsed;
-
             AppsPage.Visibility = Visibility.Collapsed;
             CleanupPage.Visibility = Visibility.Collapsed;
             StoragePage.Visibility = Visibility.Collapsed;
@@ -327,6 +341,7 @@ namespace Tidy
                     return;
                 }
 
+                int count = 0;
                 foreach (string appName in key.GetValueNames())
                 {
                     try
@@ -338,16 +353,93 @@ namespace Tidy
                             Name = appName,
                             Command = command
                         });
+                        count++;
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"Error reading startup app {appName}: {ex.Message}");
                     }
                 }
+
+                StartupCountText.Text = $"{count} startup item(s) loaded";
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error loading startup apps: {ex.Message}");
+            }
+        }
+
+        // =========================
+        // STORAGE INFO
+        // =========================
+
+        private void LoadStorageInfo()
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    // Get Downloads folder size
+                    string downloadsPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        "Downloads");
+
+                    if (Directory.Exists(downloadsPath))
+                    {
+                        long downloadsSize = GetDirectorySize(downloadsPath);
+                        double downloadsSizeGB = downloadsSize / 1024d / 1024d / 1024d;
+                        int downloadFileCount = Directory.GetFiles(downloadsPath, "*", SearchOption.TopDirectoryOnly).Length;
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            DownloadsSizeText.Text = $"{downloadsSizeGB:F2} GB";
+                            DownloadsDetailText.Text = $"{downloadFileCount} files in Downloads";
+                            DownloadsProgressBar.Value = Math.Min(downloadsSizeGB / 100 * 100, 100);
+                        });
+                    }
+
+                    // Get C: drive info
+                    DriveInfo drive = DriveInfo
+                        .GetDrives()
+                        .FirstOrDefault(d => d.IsReady && d.Name == "C:\\");
+
+                    if (drive != null)
+                    {
+                        double totalGB = drive.TotalSize / 1024d / 1024d / 1024d;
+                        double usedGB = (drive.TotalSize - drive.AvailableFreeSpace) / 1024d / 1024d / 1024d;
+                        double usedPercent = (drive.TotalSize - drive.AvailableFreeSpace) / (double)drive.TotalSize * 100;
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            CDriveText.Text = $"{usedGB:F1} GB / {totalGB:F1} GB";
+                            CDriveDetailText.Text = $"{usedPercent:F1}% used - {drive.AvailableFreeSpace / 1024d / 1024d / 1024d:F1} GB free";
+                            CDriveProgressBar.Value = usedPercent;
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error loading storage info: {ex.Message}");
+                }
+            });
+        }
+
+        private long GetDirectorySize(string path)
+        {
+            try
+            {
+                var dirInfo = new DirectoryInfo(path);
+                return dirInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly)
+                    .AsParallel()
+                    .Sum(file =>
+                    {
+                        try { return file.Length; }
+                        catch { return 0; }
+                    });
+            }
+            catch
+            {
+                return 0;
             }
         }
 
@@ -372,31 +464,41 @@ namespace Tidy
                 }
 
                 CleanupResultText.Text = "Cleaning temporary files...";
+                CleanupProgressBar.Visibility = Visibility.Visible;
 
                 Task.Run(() =>
                 {
                     try
                     {
                         string tempPath = Path.GetTempPath();
+                        var files = Directory.GetFiles(tempPath);
                         int deletedCount = 0;
+                        int totalFiles = files.Length;
 
-                        foreach (string file in Directory.GetFiles(tempPath))
+                        for (int i = 0; i < files.Length; i++)
                         {
                             try
                             {
-                                File.Delete(file);
+                                File.Delete(files[i]);
                                 deletedCount++;
+
+                                int progress = (int)((i + 1) / (double)totalFiles * 100);
+                                Dispatcher.Invoke(() =>
+                                {
+                                    CleanupProgressBar.Value = progress;
+                                });
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"Could not delete temp file {file}: {ex.Message}");
+                                Debug.WriteLine($"Could not delete temp file {files[i]}: {ex.Message}");
                             }
                         }
 
                         Dispatcher.Invoke(() =>
                         {
                             CleanupResultText.Text =
-                                $"Temporary files cleaned successfully. ({deletedCount} files deleted)";
+                                $"✓ Temporary files cleaned successfully. ({deletedCount} files deleted)";
+                            CleanupProgressBar.Visibility = Visibility.Collapsed;
                         });
                     }
                     catch (Exception ex)
@@ -404,7 +506,8 @@ namespace Tidy
                         Debug.WriteLine($"Error during temp cleanup: {ex.Message}");
                         Dispatcher.Invoke(() =>
                         {
-                            CleanupResultText.Text = $"Cleanup failed: {ex.Message}";
+                            CleanupResultText.Text = $"✗ Cleanup failed: {ex.Message}";
+                            CleanupProgressBar.Visibility = Visibility.Collapsed;
                         });
                     }
                 });
@@ -433,6 +536,8 @@ namespace Tidy
                 }
 
                 CleanupResultText.Text = "Emptying Recycle Bin...";
+                CleanupProgressBar.Visibility = Visibility.Visible;
+                CleanupProgressBar.IsIndeterminate = true;
 
                 Task.Run(() =>
                 {
@@ -448,7 +553,9 @@ namespace Tidy
 
                         Dispatcher.Invoke(() =>
                         {
-                            CleanupResultText.Text = "Recycle Bin cleaned successfully.";
+                            CleanupResultText.Text = "✓ Recycle Bin cleaned successfully.";
+                            CleanupProgressBar.Visibility = Visibility.Collapsed;
+                            CleanupProgressBar.IsIndeterminate = false;
                         });
                     }
                     catch (Exception ex)
@@ -456,7 +563,9 @@ namespace Tidy
                         Debug.WriteLine($"Error during recycle bin cleanup: {ex.Message}");
                         Dispatcher.Invoke(() =>
                         {
-                            CleanupResultText.Text = $"Recycle Bin cleanup failed: {ex.Message}";
+                            CleanupResultText.Text = $"✗ Recycle Bin cleanup failed: {ex.Message}";
+                            CleanupProgressBar.Visibility = Visibility.Collapsed;
+                            CleanupProgressBar.IsIndeterminate = false;
                         });
                     }
                 });
@@ -485,35 +594,48 @@ namespace Tidy
                 }
 
                 CleanupResultText.Text = "Activating Boost Mode...";
+                CleanupProgressBar.Visibility = Visibility.Visible;
 
                 Task.Run(() =>
                 {
                     try
                     {
+                        var processes = Process.GetProcesses();
                         int optimizedCount = 0;
 
-                        foreach (Process process in Process.GetProcesses())
+                        for (int i = 0; i < processes.Length; i++)
                         {
                             try
                             {
+                                var process = processes[i];
                                 if (!process.ProcessName.ToLower().Contains("system") &&
                                     !process.ProcessName.ToLower().Contains("svchost") &&
-                                    process.ProcessName.ToLower() != "explorer")
+                                    !process.ProcessName.ToLower().Contains("csrss") &&
+                                    !process.ProcessName.ToLower().Contains("lsass") &&
+                                    process.ProcessName.ToLower() != "explorer" &&
+                                    process.ProcessName.ToLower() != "dwm")
                                 {
                                     process.PriorityClass = ProcessPriorityClass.BelowNormal;
                                     optimizedCount++;
                                 }
+
+                                int progress = (int)((i + 1) / (double)processes.Length * 100);
+                                Dispatcher.Invoke(() =>
+                                {
+                                    CleanupProgressBar.Value = progress;
+                                });
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"Could not set priority for {process.ProcessName}: {ex.Message}");
+                                Debug.WriteLine($"Could not set priority: {ex.Message}");
                             }
                         }
 
                         Dispatcher.Invoke(() =>
                         {
                             CleanupResultText.Text =
-                                $"Boost mode optimized {optimizedCount} background processes.";
+                                $"✓ Boost mode optimized {optimizedCount} background processes.";
+                            CleanupProgressBar.Visibility = Visibility.Collapsed;
                         });
                     }
                     catch (Exception ex)
@@ -521,7 +643,8 @@ namespace Tidy
                         Debug.WriteLine($"Error during boost mode: {ex.Message}");
                         Dispatcher.Invoke(() =>
                         {
-                            CleanupResultText.Text = $"Boost mode failed: {ex.Message}";
+                            CleanupResultText.Text = $"✗ Boost mode failed: {ex.Message}";
+                            CleanupProgressBar.Visibility = Visibility.Collapsed;
                         });
                     }
                 });
