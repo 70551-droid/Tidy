@@ -190,10 +190,30 @@
                              TextChanged="SearchBox_TextChanged"/>
 
                     <DataGrid x:Name="AppsGrid"
-                              Height="650"
-                              AutoGenerateColumns="True"
-                              Background="#1E293B"
-                              Foreground="White"/>
+          Height="650"
+          AutoGenerateColumns="True"
+          Background="#1E293B"
+          Foreground="White"
+          BorderBrush="#334155"
+          RowBackground="#1E293B"
+          AlternatingRowBackground="#243041"
+          GridLinesVisibility="None"
+          HeadersVisibility="Column"
+          FontSize="14"
+          RowHeight="38">
+
+    <DataGrid.Resources>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Height" Value="40"/>
+        </Style>
+
+    </DataGrid.Resources>
+
+</DataGrid>
 
                 </StackPanel>
 

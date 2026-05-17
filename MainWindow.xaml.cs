@@ -37,7 +37,7 @@ namespace Tidy
             try
             {
                 CpuText.Text =
-                    $"{GetCpuUsage()}%";
+    $"{GetCpuUsage():F0}%";
 
                 RamText.Text =
                     $"{GetRamUsage():F1} GB";
