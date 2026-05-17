@@ -175,48 +175,58 @@ namespace Tidy
         // =========================
 
         private void LoadInstalledApps()
+{
+    try
+    {
+        AppsGrid.Items.Clear();
+
+        string[] registryPaths =
         {
-            try
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+        };
+
+        foreach (string path in registryPaths)
+        {
+            using RegistryKey key =
+                Registry.LocalMachine.OpenSubKey(path);
+
+            if (key == null)
+                continue;
+
+            foreach (string subkeyName in key.GetSubKeyNames())
             {
-                AppsGrid.Items.Clear();
+                using RegistryKey subkey =
+                    key.OpenSubKey(subkeyName);
 
-                string uninstallKey =
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+                string name =
+                    subkey?.GetValue("DisplayName")?.ToString() ?? "";
 
-                using RegistryKey key =
-                    Registry.LocalMachine.OpenSubKey(uninstallKey);
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
 
-                if (key == null)
-                    return;
+                string publisher =
+                    subkey?.GetValue("Publisher")?.ToString() ?? "Unknown";
 
-                foreach (string subkeyName in key.GetSubKeyNames())
+                string uninstall =
+                    subkey?.GetValue("UninstallString")?.ToString() ?? "";
+
+                AppsGrid.Items.Add(new AppItem
                 {
-                    using RegistryKey subkey =
-                        key.OpenSubKey(subkeyName);
-
-                    string name =
-                        subkey?.GetValue("DisplayName")?.ToString() ?? "";
-
-                    string publisher =
-                        subkey?.GetValue("Publisher")?.ToString() ?? "";
-
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        AppsGrid.Items.Add(new
-                        {
-                            Name = name,
-                            Publisher = publisher
-                        });
-                    }
-                }
-
-                AddActivity("Installed applications loaded.");
-            }
-            catch
-            {
-                AddActivity("Failed to load installed apps.");
+                    Name = name,
+                    Publisher = publisher,
+                    UninstallString = uninstall
+                });
             }
         }
+
+        AddActivity("Installed applications loaded.");
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show(ex.Message);
+    }
+}
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -362,6 +372,39 @@ namespace Tidy
         // =========================
         // ACTIVITY SYSTEM
         // =========================
+        
+        private void UninstallButton_Click(object sender, RoutedEventArgs e)
+{
+    try
+    {
+        if (sender is not Button button)
+            return;
+
+        if (button.DataContext is not AppItem app)
+            return;
+
+        if (string.IsNullOrWhiteSpace(app.UninstallString))
+        {
+            MessageBox.Show(
+                "No uninstall command found.");
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = $"/c {app.UninstallString}",
+            UseShellExecute = true
+        });
+
+        AddActivity($"Started uninstall for {app.Name}");
+    }
+    catch
+    {
+        MessageBox.Show(
+            "Failed to uninstall application.");
+    }
+}
 
         private void AddActivity(string message)
         {
@@ -370,4 +413,12 @@ namespace Tidy
                 $"{DateTime.Now:T}  •  {message}");
         }
     }
+}
+             public class AppItem
+{
+    public string Name { get; set; }
+
+    public string Publisher { get; set; }
+
+    public string UninstallString { get; set; }
 }
