@@ -200,7 +200,8 @@
           GridLinesVisibility="None"
           HeadersVisibility="Column"
           FontSize="14"
-          RowHeight="38">
+          RowHeight="38"
+          CanUserAddRows="False"/>
 
     <DataGrid.Resources>
 

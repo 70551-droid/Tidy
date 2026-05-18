@@ -211,12 +211,12 @@ namespace Tidy
                 string uninstall =
                     subkey?.GetValue("UninstallString")?.ToString() ?? "";
 
-                AppsGrid.Items.Add(new AppItem
-                {
-                    Name = name,
-                    Publisher = publisher,
-                    UninstallString = uninstall
-                });
+                AppsGrid.Items.Add(new
+{
+    Name = name,
+    Publisher = publisher,
+    Uninstall = uninstall
+});
             }
         }
 
@@ -413,12 +413,4 @@ namespace Tidy
                 $"{DateTime.Now:T}  •  {message}");
         }
     }
-}
-             public class AppItem
-{
-    public string Name { get; set; }
-
-    public string Publisher { get; set; }
-
-    public string UninstallString { get; set; }
 }
