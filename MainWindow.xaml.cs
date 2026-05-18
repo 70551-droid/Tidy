@@ -174,19 +174,19 @@ namespace Tidy
         // INSTALLED APPS
         // =========================
 
-        private void LoadInstalledApps()
+    private void LoadInstalledApps()
 {
     try
     {
         AppsGrid.Items.Clear();
 
-        string[] registryPaths =
+        string[] machinePaths =
         {
             @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
             @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
         };
 
-        foreach (string path in registryPaths)
+        foreach (string path in machinePaths)
         {
             using RegistryKey key =
                 Registry.LocalMachine.OpenSubKey(path);
@@ -199,24 +199,62 @@ namespace Tidy
                 using RegistryKey subkey =
                     key.OpenSubKey(subkeyName);
 
+                if (subkey == null)
+                    continue;
+
                 string name =
-                    subkey?.GetValue("DisplayName")?.ToString() ?? "";
+                    subkey.GetValue("DisplayName")?.ToString() ?? "";
 
                 if (string.IsNullOrWhiteSpace(name))
                     continue;
 
                 string publisher =
-                    subkey?.GetValue("Publisher")?.ToString() ?? "Unknown";
+                    subkey.GetValue("Publisher")?.ToString() ?? "Unknown";
 
                 string uninstall =
-                    subkey?.GetValue("UninstallString")?.ToString() ?? "";
+                    subkey.GetValue("UninstallString")?.ToString() ?? "";
 
                 AppsGrid.Items.Add(new
-{
-    Name = name,
-    Publisher = publisher,
-    Uninstall = uninstall
-});
+                {
+                    Name = name,
+                    Publisher = publisher,
+                    Uninstall = uninstall
+                });
+            }
+        }
+
+        using RegistryKey currentUserKey =
+            Registry.CurrentUser.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
+
+        if (currentUserKey != null)
+        {
+            foreach (string subkeyName in currentUserKey.GetSubKeyNames())
+            {
+                using RegistryKey subkey =
+                    currentUserKey.OpenSubKey(subkeyName);
+
+                if (subkey == null)
+                    continue;
+
+                string name =
+                    subkey.GetValue("DisplayName")?.ToString() ?? "";
+
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
+
+                string publisher =
+                    subkey.GetValue("Publisher")?.ToString() ?? "Unknown";
+
+                string uninstall =
+                    subkey.GetValue("UninstallString")?.ToString() ?? "";
+
+                AppsGrid.Items.Add(new
+                {
+                    Name = name,
+                    Publisher = publisher,
+                    Uninstall = uninstall
+                });
             }
         }
 
