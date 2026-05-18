@@ -37,7 +37,7 @@ namespace Tidy
             try
             {
                 CpuText.Text =
-    $"{GetCpuUsage():F0}%";
+                    $"{GetCpuUsage():F0}%";
 
                 RamText.Text =
                     $"{GetRamUsage():F1} GB";
@@ -174,36 +174,198 @@ namespace Tidy
         // INSTALLED APPS
         // =========================
 
- private void LoadInstalledApps()
-{
-    AppsGrid.Items.Clear();
+        private void LoadInstalledApps()
+        {
+            try
+            {
+                AppsGrid.Items.Clear();
 
-    AppsGrid.Items.Add(new AppItem
-    {
-        Name = "Google Chrome",
-        Publisher = "Google",
-        Uninstall = "test"
-    });
+                string[] registryPaths =
+                {
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                    @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+                };
 
-    AppsGrid.Items.Add(new AppItem
-    {
-        Name = "Visual Studio Code",
-        Publisher = "Microsoft",
-        Uninstall = "test"
-    });
+                foreach (string path in registryPaths)
+                {
+                    using RegistryKey baseKey =
+                        Registry.LocalMachine.OpenSubKey(path);
 
-    AppsGrid.Items.Add(new AppItem
-    {
-        Name = "Discord",
-        Publisher = "Discord Inc.",
-        Uninstall = "test"
-    });
-}
+                    if (baseKey == null)
+                        continue;
 
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
-    {
+                    foreach (string subKeyName in baseKey.GetSubKeyNames())
+                    {
+                        using RegistryKey subKey =
+                            baseKey.OpenSubKey(subKeyName);
 
-    }
+                        if (subKey == null)
+                            continue;
+
+                        string name =
+                            subKey.GetValue("DisplayName")?.ToString() ?? "";
+
+                        if (string.IsNullOrWhiteSpace(name))
+                            continue;
+
+                        string publisher =
+                            subKey.GetValue("Publisher")?.ToString() ?? "Unknown";
+
+                        string uninstall =
+                            subKey.GetValue("UninstallString")?.ToString() ?? "";
+
+                        AppsGrid.Items.Add(new AppItem
+                        {
+                            Name = name,
+                            Publisher = publisher,
+                            Uninstall = uninstall
+                        });
+                    }
+                }
+
+                using RegistryKey currentUserKey =
+                    Registry.CurrentUser.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
+
+                if (currentUserKey != null)
+                {
+                    foreach (string subKeyName in currentUserKey.GetSubKeyNames())
+                    {
+                        using RegistryKey subKey =
+                            currentUserKey.OpenSubKey(subKeyName);
+
+                        if (subKey == null)
+                            continue;
+
+                        string name =
+                            subKey.GetValue("DisplayName")?.ToString() ?? "";
+
+                        if (string.IsNullOrWhiteSpace(name))
+                            continue;
+
+                        string publisher =
+                            subKey.GetValue("Publisher")?.ToString() ?? "Unknown";
+
+                        string uninstall =
+                            subKey.GetValue("UninstallString")?.ToString() ?? "";
+
+                        AppsGrid.Items.Add(new AppItem
+                        {
+                            Name = name,
+                            Publisher = publisher,
+                            Uninstall = uninstall
+                        });
+                    }
+                }
+
+                AddActivity("Installed applications loaded.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to load apps:\n{ex.Message}");
+            }
+        }
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                string search =
+                    SearchBox.Text.ToLower().Trim();
+
+                AppsGrid.Items.Clear();
+
+                string[] registryPaths =
+                {
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                    @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+                };
+
+                foreach (string path in registryPaths)
+                {
+                    using RegistryKey baseKey =
+                        Registry.LocalMachine.OpenSubKey(path);
+
+                    if (baseKey == null)
+                        continue;
+
+                    foreach (string subKeyName in baseKey.GetSubKeyNames())
+                    {
+                        using RegistryKey subKey =
+                            baseKey.OpenSubKey(subKeyName);
+
+                        if (subKey == null)
+                            continue;
+
+                        string name =
+                            subKey.GetValue("DisplayName")?.ToString() ?? "";
+
+                        if (string.IsNullOrWhiteSpace(name))
+                            continue;
+
+                        if (!name.ToLower().Contains(search))
+                            continue;
+
+                        string publisher =
+                            subKey.GetValue("Publisher")?.ToString() ?? "Unknown";
+
+                        string uninstall =
+                            subKey.GetValue("UninstallString")?.ToString() ?? "";
+
+                        AppsGrid.Items.Add(new AppItem
+                        {
+                            Name = name,
+                            Publisher = publisher,
+                            Uninstall = uninstall
+                        });
+                    }
+                }
+
+                using RegistryKey currentUserKey =
+                    Registry.CurrentUser.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
+
+                if (currentUserKey != null)
+                {
+                    foreach (string subKeyName in currentUserKey.GetSubKeyNames())
+                    {
+                        using RegistryKey subKey =
+                            currentUserKey.OpenSubKey(subKeyName);
+
+                        if (subKey == null)
+                            continue;
+
+                        string name =
+                            subKey.GetValue("DisplayName")?.ToString() ?? "";
+
+                        if (string.IsNullOrWhiteSpace(name))
+                            continue;
+
+                        if (!name.ToLower().Contains(search))
+                            continue;
+
+                        string publisher =
+                            subKey.GetValue("Publisher")?.ToString() ?? "Unknown";
+
+                        string uninstall =
+                            subKey.GetValue("UninstallString")?.ToString() ?? "";
+
+                        AppsGrid.Items.Add(new AppItem
+                        {
+                            Name = name,
+                            Publisher = publisher,
+                            Uninstall = uninstall
+                        });
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
         // =========================
         // CLEANUP ENGINE
         // =========================
@@ -302,20 +464,21 @@ namespace Tidy
         // =========================
         // ACTIVITY SYSTEM
         // =========================
-        
-                private void UninstallButton_Click(object sender, RoutedEventArgs e)
+
+        private void UninstallButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 if (sender is not Button button)
                     return;
 
-                dynamic app = button.DataContext;
+                AppItem app =
+                    button.DataContext as AppItem;
 
-                string uninstallString =
-                    app.Uninstall;
+                if (app == null)
+                    return;
 
-                if (string.IsNullOrWhiteSpace(uninstallString))
+                if (string.IsNullOrWhiteSpace(app.Uninstall))
                 {
                     MessageBox.Show(
                         "No uninstall command found.");
@@ -325,11 +488,12 @@ namespace Tidy
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/c {uninstallString}",
+                    Arguments = $"/c {app.Uninstall}",
                     UseShellExecute = true
                 });
 
-                AddActivity($"Started uninstall for {app.Name}");
+                AddActivity(
+                    $"Started uninstall for {app.Name}");
             }
             catch
             {
@@ -345,12 +509,13 @@ namespace Tidy
                 $"{DateTime.Now:T}  •  {message}");
         }
     }
+
     public class AppItem
-{
-    public string Name { get; set; }
+    {
+        public string Name { get; set; }
 
-    public string Publisher { get; set; }
+        public string Publisher { get; set; }
 
-    public string Uninstall { get; set; }
-}
+        public string Uninstall { get; set; }
+    }
 }
