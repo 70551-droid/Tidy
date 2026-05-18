@@ -178,22 +178,25 @@ namespace Tidy
 {
     AppsGrid.Items.Clear();
 
-    AppsGrid.Items.Add(new
+    AppsGrid.Items.Add(new AppItem
     {
         Name = "Google Chrome",
-        Publisher = "Google"
+        Publisher = "Google",
+        Uninstall = "test"
     });
 
-    AppsGrid.Items.Add(new
+    AppsGrid.Items.Add(new AppItem
     {
         Name = "Visual Studio Code",
-        Publisher = "Microsoft"
+        Publisher = "Microsoft",
+        Uninstall = "test"
     });
 
-    AppsGrid.Items.Add(new
+    AppsGrid.Items.Add(new AppItem
     {
         Name = "Discord",
-        Publisher = "Discord Inc."
+        Publisher = "Discord Inc.",
+        Uninstall = "test"
     });
 }
 
@@ -342,4 +345,12 @@ namespace Tidy
                 $"{DateTime.Now:T}  •  {message}");
         }
     }
+    public class AppItem
+{
+    public string Name { get; set; }
+
+    public string Publisher { get; set; }
+
+    public string Uninstall { get; set; }
+}
 }
