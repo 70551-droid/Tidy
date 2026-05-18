@@ -380,10 +380,12 @@ namespace Tidy
         if (sender is not Button button)
             return;
 
-        if (button.DataContext is not AppItem app)
-            return;
+        dynamic app = button.DataContext;
 
-        if (string.IsNullOrWhiteSpace(app.UninstallString))
+        string uninstallString =
+            app.Uninstall;
+
+        if (string.IsNullOrWhiteSpace(uninstallString))
         {
             MessageBox.Show(
                 "No uninstall command found.");
@@ -393,12 +395,18 @@ namespace Tidy
         Process.Start(new ProcessStartInfo
         {
             FileName = "cmd.exe",
-            Arguments = $"/c {app.UninstallString}",
+            Arguments = $"/c {uninstallString}",
             UseShellExecute = true
         });
 
         AddActivity($"Started uninstall for {app.Name}");
     }
+    catch
+    {
+        MessageBox.Show(
+            "Failed to uninstall application.");
+    }
+}
     catch
     {
         MessageBox.Show(
