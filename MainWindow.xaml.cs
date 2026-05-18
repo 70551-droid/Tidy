@@ -174,144 +174,33 @@ namespace Tidy
         // INSTALLED APPS
         // =========================
 
-    private void LoadInstalledApps()
+ private void LoadInstalledApps()
 {
-    try
+    AppsGrid.Items.Clear();
+
+    AppsGrid.Items.Add(new
     {
-        AppsGrid.Items.Clear();
+        Name = "Google Chrome",
+        Publisher = "Google"
+    });
 
-        string[] machinePaths =
-        {
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-        };
-
-        foreach (string path in machinePaths)
-        {
-            using RegistryKey key =
-                Registry.LocalMachine.OpenSubKey(path);
-
-            if (key == null)
-                continue;
-
-            foreach (string subkeyName in key.GetSubKeyNames())
-            {
-                using RegistryKey subkey =
-                    key.OpenSubKey(subkeyName);
-
-                if (subkey == null)
-                    continue;
-
-                string name =
-                    subkey.GetValue("DisplayName")?.ToString() ?? "";
-
-                if (string.IsNullOrWhiteSpace(name))
-                    continue;
-
-                string publisher =
-                    subkey.GetValue("Publisher")?.ToString() ?? "Unknown";
-
-                string uninstall =
-                    subkey.GetValue("UninstallString")?.ToString() ?? "";
-
-                AppsGrid.Items.Add(new
-                {
-                    Name = name,
-                    Publisher = publisher,
-                    Uninstall = uninstall
-                });
-            }
-        }
-
-        using RegistryKey currentUserKey =
-            Registry.CurrentUser.OpenSubKey(
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall");
-
-        if (currentUserKey != null)
-        {
-            foreach (string subkeyName in currentUserKey.GetSubKeyNames())
-            {
-                using RegistryKey subkey =
-                    currentUserKey.OpenSubKey(subkeyName);
-
-                if (subkey == null)
-                    continue;
-
-                string name =
-                    subkey.GetValue("DisplayName")?.ToString() ?? "";
-
-                if (string.IsNullOrWhiteSpace(name))
-                    continue;
-
-                string publisher =
-                    subkey.GetValue("Publisher")?.ToString() ?? "Unknown";
-
-                string uninstall =
-                    subkey.GetValue("UninstallString")?.ToString() ?? "";
-
-                AppsGrid.Items.Add(new
-                {
-                    Name = name,
-                    Publisher = publisher,
-                    Uninstall = uninstall
-                });
-            }
-        }
-
-        AddActivity("Installed applications loaded.");
-    }
-    catch (Exception ex)
+    AppsGrid.Items.Add(new
     {
-        MessageBox.Show(ex.Message);
-    }
+        Name = "Visual Studio Code",
+        Publisher = "Microsoft"
+    });
+
+    AppsGrid.Items.Add(new
+    {
+        Name = "Discord",
+        Publisher = "Discord Inc."
+    });
 }
 
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            try
-            {
-                string search =
-                    SearchBox.Text.ToLower();
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
 
-                AppsGrid.Items.Clear();
-
-                string uninstallKey =
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
-
-                using RegistryKey key =
-                    Registry.LocalMachine.OpenSubKey(uninstallKey);
-
-                if (key == null)
-                    return;
-
-                foreach (string subkeyName in key.GetSubKeyNames())
-                {
-                    using RegistryKey subkey =
-                        key.OpenSubKey(subkeyName);
-
-                    string name =
-                        subkey?.GetValue("DisplayName")?.ToString() ?? "";
-
-                    string publisher =
-                        subkey?.GetValue("Publisher")?.ToString() ?? "";
-
-                    if (!string.IsNullOrWhiteSpace(name) &&
-                        name.ToLower().Contains(search))
-                    {
-                        AppsGrid.Items.Add(new
-                        {
-                            Name = name,
-                            Publisher = publisher
-                        });
-                    }
-                }
-            }
-            catch
-            {
-
-            }
-        }
-
+    }
         // =========================
         // CLEANUP ENGINE
         // =========================
