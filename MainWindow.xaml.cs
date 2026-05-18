@@ -373,42 +373,40 @@ namespace Tidy
         // ACTIVITY SYSTEM
         // =========================
         
-        private void UninstallButton_Click(object sender, RoutedEventArgs e)
-{
-    try
-    {
-        if (sender is not Button button)
-            return;
-
-        dynamic app = button.DataContext;
-
-        string uninstallString =
-            app.Uninstall;
-
-        if (string.IsNullOrWhiteSpace(uninstallString))
+                private void UninstallButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "No uninstall command found.");
-            return;
+            try
+            {
+                if (sender is not Button button)
+                    return;
+
+                dynamic app = button.DataContext;
+
+                string uninstallString =
+                    app.Uninstall;
+
+                if (string.IsNullOrWhiteSpace(uninstallString))
+                {
+                    MessageBox.Show(
+                        "No uninstall command found.");
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c {uninstallString}",
+                    UseShellExecute = true
+                });
+
+                AddActivity($"Started uninstall for {app.Name}");
+            }
+            catch
+            {
+                MessageBox.Show(
+                    "Failed to uninstall application.");
+            }
         }
-
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "cmd.exe",
-            Arguments = $"/c {uninstallString}",
-            UseShellExecute = true
-        });
-
-        AddActivity($"Started uninstall for {app.Name}");
-    }
-    catch
-    {
-        MessageBox.Show(
-            "Failed to uninstall application.");
-    }
-}
-
-}
 
         private void AddActivity(string message)
         {
