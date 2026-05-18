@@ -191,7 +191,6 @@
 
                     <DataGrid x:Name="AppsGrid"
           Height="650"
-          AutoGenerateColumns="True"
           Background="#1E293B"
           Foreground="White"
           BorderBrush="#334155"
@@ -201,12 +200,22 @@
           HeadersVisibility="Column"
           FontSize="14"
           RowHeight="38"
-          CanUserAddRows="False"/>
+          CanUserAddRows="False"
+          AutoGenerateColumns="False">
 
+    <DataGrid.Columns>
 
-                </StackPanel>
+        <DataGridTextColumn Header="Application"
+                            Binding="{Binding Name}"
+                            Width="*" />
 
-            </Grid>
+        <DataGridTextColumn Header="Publisher"
+                            Binding="{Binding Publisher}"
+                            Width="250" />
+
+    </DataGrid.Columns>
+
+</DataGrid>
 
             <!-- CLEANUP PAGE -->
 
