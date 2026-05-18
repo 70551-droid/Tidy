@@ -89,8 +89,6 @@
 
                     <WrapPanel>
 
-                        <!-- CPU -->
-
                         <Border Width="260"
                                 Height="160"
                                 Background="{StaticResource CardBrush}"
@@ -114,8 +112,6 @@
 
                         </Border>
 
-                        <!-- RAM -->
-
                         <Border Width="260"
                                 Height="160"
                                 Background="{StaticResource CardBrush}"
@@ -138,8 +134,6 @@
                             </StackPanel>
 
                         </Border>
-
-                        <!-- DISK -->
 
                         <Border Width="260"
                                 Height="160"
@@ -190,32 +184,36 @@
                              TextChanged="SearchBox_TextChanged"/>
 
                     <DataGrid x:Name="AppsGrid"
-          Height="650"
-          Background="#1E293B"
-          Foreground="White"
-          BorderBrush="#334155"
-          RowBackground="#1E293B"
-          AlternatingRowBackground="#243041"
-          GridLinesVisibility="None"
-          HeadersVisibility="Column"
-          FontSize="14"
-          RowHeight="38"
-          CanUserAddRows="False"
-          AutoGenerateColumns="False">
+                              Height="650"
+                              Background="#1E293B"
+                              Foreground="White"
+                              BorderBrush="#334155"
+                              RowBackground="#1E293B"
+                              AlternatingRowBackground="#243041"
+                              GridLinesVisibility="None"
+                              HeadersVisibility="Column"
+                              FontSize="14"
+                              RowHeight="38"
+                              CanUserAddRows="False"
+                              AutoGenerateColumns="False">
 
-    <DataGrid.Columns>
+                        <DataGrid.Columns>
 
-        <DataGridTextColumn Header="Application"
-                            Binding="{Binding Name}"
-                            Width="*" />
+                            <DataGridTextColumn Header="Application"
+                                                Binding="{Binding Name}"
+                                                Width="*" />
 
-        <DataGridTextColumn Header="Publisher"
-                            Binding="{Binding Publisher}"
-                            Width="250" />
+                            <DataGridTextColumn Header="Publisher"
+                                                Binding="{Binding Publisher}"
+                                                Width="250" />
 
-    </DataGrid.Columns>
+                        </DataGrid.Columns>
 
-</DataGrid>
+                    </DataGrid>
+
+                </StackPanel>
+
+            </Grid>
 
             <!-- CLEANUP PAGE -->
 
