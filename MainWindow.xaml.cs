@@ -407,11 +407,7 @@ namespace Tidy
             "Failed to uninstall application.");
     }
 }
-    catch
-    {
-        MessageBox.Show(
-            "Failed to uninstall application.");
-    }
+
 }
 
         private void AddActivity(string message)
