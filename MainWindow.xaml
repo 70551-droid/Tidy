@@ -203,17 +203,6 @@
           RowHeight="38"
           CanUserAddRows="False"/>
 
-    <DataGrid.Resources>
-
-        <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#2563EB"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Height" Value="40"/>
-        </Style>
-
-    </DataGrid.Resources>
-
 </DataGrid>
 
                 </StackPanel>
